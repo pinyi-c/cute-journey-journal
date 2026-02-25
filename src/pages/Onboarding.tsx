@@ -1,21 +1,25 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useJourney, ThemeId } from '@/lib/journeyContext';
 import { ThemePicker } from '@/components/ThemePicker';
 import mascotUrl from '@/assets/mascot.svg';
 
 export default function Onboarding() {
-  const { journey, createJourney, resetJourney } = useJourney();
+  const { journey, createJourney, updateJourneyDetails, resetJourney } = useJourney();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isEditing = Boolean(location.state && (location.state as { edit?: boolean }).edit && journey);
   const [showNewForm, setShowNewForm] = useState(false);
-  const [title, setTitle] = useState("Erina's Taipei Adventure Journal");
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [buddyName, setBuddyName] = useState('');
-  const [theme, setTheme] = useState<ThemeId>('pink');
+  const [title, setTitle] = useState(
+    journey ? journey.title : "Erina's Taipei Adventure Journal",
+  );
+  const [startDate, setStartDate] = useState(journey ? journey.startDate : '');
+  const [endDate, setEndDate] = useState(journey ? journey.endDate : '');
+  const [buddyName, setBuddyName] = useState(journey ? journey.buddyName : '');
+  const [theme, setTheme] = useState<ThemeId>(journey ? journey.theme : 'pink');
 
   // If journey exists and user hasn't clicked "new", show continue screen
-  if (journey && !showNewForm) {
+  if (journey && !showNewForm && !isEditing) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 max-w-md mx-auto">
         <img src={mascotUrl} alt="Journey mascot" className="w-24 h-24 mb-4" />
@@ -44,7 +48,11 @@ export default function Onboarding() {
 
   const handleStart = () => {
     if (!startDate) return;
-    createJourney({ title, startDate, endDate, buddyName, theme });
+    if (journey && isEditing) {
+      updateJourneyDetails({ title, startDate, endDate, buddyName, theme });
+    } else {
+      createJourney({ title, startDate, endDate, buddyName, theme });
+    }
     navigate('/challenges');
   };
 

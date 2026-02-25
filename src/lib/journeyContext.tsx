@@ -24,6 +24,7 @@ export interface Journey {
 interface JourneyContextType {
   journey: Journey | null;
   createJourney: (data: Omit<Journey, 'challenges'>) => void;
+  updateJourneyDetails: (data: Partial<Omit<Journey, 'challenges'>>) => void;
   updateChallenge: (id: string, updates: Partial<Challenge>) => void;
   addChallenge: (title: string) => void;
   deleteChallenge: (id: string) => void;
@@ -92,6 +93,17 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const updateJourneyDetails = useCallback((data: Partial<Omit<Journey, 'challenges'>>) => {
+    setJourney(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        ...data,
+        challenges: prev.challenges,
+      };
+    });
+  }, []);
+
   const updateChallenge = useCallback((id: string, updates: Partial<Challenge>) => {
     setJourney(prev => {
       if (!prev) return prev;
@@ -127,7 +139,17 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <JourneyContext.Provider value={{ journey, createJourney, updateChallenge, addChallenge, deleteChallenge, resetJourney }}>
+    <JourneyContext.Provider
+      value={{
+        journey,
+        createJourney,
+        updateJourneyDetails,
+        updateChallenge,
+        addChallenge,
+        deleteChallenge,
+        resetJourney,
+      }}
+    >
       {children}
     </JourneyContext.Provider>
   );

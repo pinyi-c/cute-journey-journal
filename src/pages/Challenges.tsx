@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useJourney } from '@/lib/journeyContext';
 import { ChallengeItem } from '@/components/ChallengeItem';
 import { BottomNav } from '@/components/BottomNav';
@@ -10,6 +10,7 @@ export default function Challenges() {
   const { journey, addChallenge } = useJourney();
   const [newTitle, setNewTitle] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const navigate = useNavigate();
 
   if (!journey) return <Navigate to="/" replace />;
 
@@ -35,7 +36,15 @@ export default function Challenges() {
             {completed}/{total} completed
           </p>
         </div>
-        <img src={mascotUrl} alt="Mascot" className="w-10 h-10 flex-shrink-0 ml-3" />
+        <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+          <button
+            onClick={() => navigate('/', { state: { edit: true } })}
+            className="text-xs font-semibold text-primary underline underline-offset-2"
+          >
+            Edit Journey
+          </button>
+          <img src={mascotUrl} alt="Mascot" className="w-10 h-10" />
+        </div>
       </div>
 
       {/* Progress bar */}
