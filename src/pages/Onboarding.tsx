@@ -60,8 +60,8 @@ export default function Onboarding() {
     <div className="min-h-screen flex flex-col p-6 max-w-md mx-auto">
       <div className="flex flex-col items-center mb-8 pt-8">
         <img src={mascotUrl} alt="Journey mascot" className="w-28 h-28 mb-3 drop-shadow-lg" />
-        <h1 className="text-2xl font-extrabold text-center">Cute Journey Challenges</h1>
-        <p className="text-muted-foreground text-sm mt-1">Create your adventure journal! ✨</p>
+        <h1 className="text-2xl font-extrabold text-center">Welcome to Taiwan!</h1>
+        <p className="text-muted-foreground text-sm mt-1">Tiny moments, big memories. 😋</p>
       </div>
 
       <div className="space-y-4">
