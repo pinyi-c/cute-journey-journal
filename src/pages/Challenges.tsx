@@ -29,21 +29,21 @@ export default function Challenges() {
   return (
     <div className="min-h-screen pb-24 max-w-md mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 sticky top-0 bg-background/80 backdrop-blur-md z-10">
+      <div className="flex items-start justify-between p-4 sticky top-0 bg-background/80 backdrop-blur-md z-10">
         <div className="min-w-0 flex-1">
           <h1 className="text-lg font-extrabold truncate">{journey.title}</h1>
           <p className="text-xs text-muted-foreground">
             {completed}/{total} completed
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+        <div className="flex flex-col items-center gap-2 flex-shrink-0 ml-3">
+          <img src={mascotUrl} alt="Mascot" className="w-10 h-10" />
           <button
             onClick={() => navigate('/', { state: { edit: true } })}
             className="text-xs font-semibold text-primary underline underline-offset-2"
           >
             Edit Journey
           </button>
-          <img src={mascotUrl} alt="Mascot" className="w-10 h-10" />
         </div>
       </div>
 
