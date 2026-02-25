@@ -28,6 +28,7 @@ interface JourneyContextType {
   updateChallenge: (id: string, updates: Partial<Challenge>) => void;
   addChallenge: (title: string) => void;
   deleteChallenge: (id: string) => void;
+   saveNow: () => void;
   resetJourney: () => void;
 }
 
@@ -138,6 +139,16 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
     setJourney(null);
   }, []);
 
+  const saveNow = useCallback(() => {
+    if (journey) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(journey));
+      document.documentElement.setAttribute('data-theme', journey.theme);
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+      document.documentElement.removeAttribute('data-theme');
+    }
+  }, [journey]);
+
   return (
     <JourneyContext.Provider
       value={{
@@ -147,6 +158,7 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
         updateChallenge,
         addChallenge,
         deleteChallenge,
+        saveNow,
         resetJourney,
       }}
     >

@@ -7,9 +7,10 @@ import mascotUrl from '@/assets/mascot.svg';
 import { Plus } from 'lucide-react';
 
 export default function Challenges() {
-  const { journey, addChallenge } = useJourney();
+  const { journey, addChallenge, saveNow } = useJourney();
   const [newTitle, setNewTitle] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const navigate = useNavigate();
 
   if (!journey) return <Navigate to="/" replace />;
@@ -24,6 +25,11 @@ export default function Challenges() {
       setNewTitle('');
       setShowAdd(false);
     }
+  };
+
+  const handleManualSave = () => {
+    saveNow();
+    setSaveStatus('Saved just now');
   };
 
   return (
@@ -56,6 +62,20 @@ export default function Challenges() {
           />
         </div>
         <p className="text-xs text-muted-foreground mt-1 text-right">{pct}%</p>
+      </div>
+
+      {/* Manual save */}
+      <div className="px-4 mb-3 flex items-center justify-between text-[11px] text-muted-foreground">
+        <span>Auto-save is on.</span>
+        <div className="flex items-center gap-2">
+          {saveStatus && <span>{saveStatus}</span>}
+          <button
+            onClick={handleManualSave}
+            className="px-3 py-1 rounded-full border border-border text-[11px] font-medium bg-background/80 hover:bg-muted transition-colors"
+          >
+            Save
+          </button>
+        </div>
       </div>
 
       {/* Challenge list */}
