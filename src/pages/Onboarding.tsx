@@ -1,0 +1,116 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useJourney, ThemeId } from '@/lib/journeyContext';
+import { ThemePicker } from '@/components/ThemePicker';
+import mascotUrl from '@/assets/mascot.svg';
+
+export default function Onboarding() {
+  const { journey, createJourney, resetJourney } = useJourney();
+  const navigate = useNavigate();
+  const [showNewForm, setShowNewForm] = useState(false);
+  const [title, setTitle] = useState("Erina's Taipei Adventure Journal");
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [buddyName, setBuddyName] = useState('');
+  const [theme, setTheme] = useState<ThemeId>('pink');
+
+  // If journey exists and user hasn't clicked "new", show continue screen
+  if (journey && !showNewForm) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 max-w-md mx-auto">
+        <img src={mascotUrl} alt="Journey mascot" className="w-24 h-24 mb-4" />
+        <h1 className="text-2xl font-extrabold mb-2 text-center">Welcome back! 🎉</h1>
+        <p className="text-muted-foreground mb-6 text-center">
+          Your journey: <strong className="text-foreground">{journey.title}</strong>
+        </p>
+        <button
+          onClick={() => navigate('/challenges')}
+          className="w-full bg-primary text-primary-foreground rounded-2xl py-3.5 font-bold text-lg shadow-lg active:scale-[0.98] transition-transform"
+        >
+          Continue Journey ✨
+        </button>
+        <button
+          onClick={() => {
+            resetJourney();
+            setShowNewForm(true);
+          }}
+          className="mt-4 text-sm text-muted-foreground underline"
+        >
+          Start a new journey
+        </button>
+      </div>
+    );
+  }
+
+  const handleStart = () => {
+    if (!startDate) return;
+    createJourney({ title, startDate, endDate, buddyName, theme });
+    navigate('/challenges');
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col p-6 max-w-md mx-auto">
+      <div className="flex flex-col items-center mb-8 pt-8">
+        <img src={mascotUrl} alt="Journey mascot" className="w-28 h-28 mb-3 drop-shadow-lg" />
+        <h1 className="text-2xl font-extrabold text-center">Cute Journey Challenges</h1>
+        <p className="text-muted-foreground text-sm mt-1">Create your adventure journal! ✨</p>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm font-semibold block mb-1">Journey Title</label>
+          <input
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            className="w-full p-3 rounded-2xl bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label className="text-sm font-semibold block mb-1">Start Date *</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              className="w-full p-3 rounded-2xl bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              required
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-sm font-semibold block mb-1">End Date</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              className="w-full p-3 rounded-2xl bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-sm font-semibold block mb-1">Buddy Name</label>
+          <input
+            value={buddyName}
+            onChange={e => setBuddyName(e.target.value)}
+            placeholder="Optional travel buddy 🧸"
+            className="w-full p-3 rounded-2xl bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-semibold block mb-2">Theme</label>
+          <ThemePicker selected={theme} onSelect={setTheme} />
+        </div>
+      </div>
+
+      <button
+        onClick={handleStart}
+        disabled={!startDate}
+        className="mt-8 w-full bg-primary text-primary-foreground rounded-2xl py-4 font-bold text-lg disabled:opacity-50 shadow-lg active:scale-[0.98] transition-transform"
+      >
+        Start My Journey! 🚀
+      </button>
+    </div>
+  );
+}
