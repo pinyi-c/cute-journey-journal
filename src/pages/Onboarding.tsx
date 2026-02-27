@@ -75,7 +75,7 @@ export default function Onboarding() {
           />
         </div>
 
-        <div className="flex gap-3">
+        <div className="grid grid-cols-2 gap-4">
           <div className="flex-1">
             <label className="text-sm font-semibold block mb-1">Start Date *</label>
             <input

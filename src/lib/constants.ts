@@ -3,7 +3,7 @@ export const MAX_PHOTOS_PER_CHALLENGE = 10;
 
 /** Base Tailwind classes for single-line text/date inputs. */
 export const INPUT_FIELD_CLASSES =
-  'w-full mt-1 h-12 px-3 rounded-2xl bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring';
+  'w-full mt-1 h-12 px-4 py-3 rounded-2xl bg-card border border-border text-base focus:outline-none focus:ring-2 focus:ring-ring';
 
 /** Base Tailwind classes for multi-line textareas (e.g., captions). */
 export const TEXTAREA_FIELD_CLASSES =
