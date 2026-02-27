@@ -62,6 +62,10 @@ export function PhotoCropModal({ file, onCancel, onConfirm }: Props) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [viewport, setViewport] = useState<{ height: number; offsetTop: number }>({
+    height: typeof window !== 'undefined' ? window.innerHeight : 0,
+    offsetTop: 0,
+  });
 
   useEffect(() => {
     if (!file) {
@@ -73,6 +77,28 @@ export function PhotoCropModal({ file, onCancel, onConfirm }: Props) {
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
+  useEffect(() => {
+    const updateViewport = () => {
+      if (typeof window === 'undefined') return;
+      const vv = (window as any).visualViewport as VisualViewport | undefined;
+      if (vv) {
+        setViewport({ height: vv.height, offsetTop: vv.offsetTop });
+      } else {
+        setViewport({ height: window.innerHeight, offsetTop: 0 });
+      }
+    };
+    updateViewport();
+    const vv = (window as any).visualViewport as VisualViewport | undefined;
+    vv?.addEventListener('resize', updateViewport);
+    vv?.addEventListener('scroll', updateViewport);
+    window.addEventListener('orientationchange', updateViewport);
+    return () => {
+      vv?.removeEventListener('resize', updateViewport);
+      vv?.removeEventListener('scroll', updateViewport);
+      window.removeEventListener('orientationchange', updateViewport);
+    };
+  }, []);
+
   const handleUsePhoto = async () => {
     if (!file || !croppedAreaPixels) return;
     const blob = await getCroppedImage(file, croppedAreaPixels);
@@ -82,8 +108,8 @@ export function PhotoCropModal({ file, onCancel, onConfirm }: Props) {
   return (
     <Dialog open={!!file} onOpenChange={open => { if (!open) onCancel(); }}>
       <DialogContent
-        className="fixed inset-0 z-50 w-full max-w-none p-0 flex flex-col bg-background border-0 sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:max-w-md sm:rounded-lg sm:border sm:h-[90vh]"
-        style={{ height: 'var(--app-height, 100dvh)' }}
+        className="fixed inset-0 z-50 w-full max-w-none p-0 flex flex-col bg-background border-0 overflow-auto sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:max-w-md sm:rounded-lg sm:border sm:h-[90vh]"
+        style={{ height: `${viewport.height}px`, top: `${viewport.offsetTop}px` }}
       >
         <div className="flex-1 min-h-0 relative bg-black">
           {imageUrl && (
@@ -99,7 +125,7 @@ export function PhotoCropModal({ file, onCancel, onConfirm }: Props) {
           )}
         </div>
         <div
-          className="mt-auto flex-shrink-0 w-full p-3 flex items-center justify-between border-t bg-background/95 backdrop-blur-sm"
+          className="mt-auto flex-shrink-0 w-full p-3 flex items-center justify-between border-t bg-background/95 backdrop-blur-sm sticky bottom-0"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
         >
           <button
