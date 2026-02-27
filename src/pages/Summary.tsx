@@ -11,7 +11,8 @@ import { FileDown, Share2 } from 'lucide-react';
 
 export default function Summary() {
   const { journey } = useJourney();
-  const [exporting, setExporting] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingIg, setExportingIg] = useState(false);
   const [collageUrls, setCollageUrls] = useState<string[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -38,15 +39,23 @@ export default function Summary() {
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   const handlePdfExport = async () => {
-    setExporting(true);
-    try { await exportPdf(journey); } catch (e) { console.error('PDF export failed:', e); }
-    setExporting(false);
+    setExportingPdf(true);
+    try {
+      await exportPdf(journey);
+    } catch (e) {
+      console.error('PDF export failed:', e);
+    }
+    setExportingPdf(false);
   };
 
   const handleStoryExport = async () => {
-    setExporting(true);
-    try { await exportIgStory(journey); } catch (e) { console.error('Story export failed:', e); }
-    setExporting(false);
+    setExportingIg(true);
+    try {
+      await exportIgStory(journey);
+    } catch (e) {
+      console.error('Story export failed:', e);
+    }
+    setExportingIg(false);
   };
 
   return (
@@ -79,13 +88,13 @@ export default function Summary() {
 
       <div className="mx-4 space-y-3">
         <h2 className="font-bold">Export Your Journey</h2>
-        <button onClick={handlePdfExport} disabled={exporting}
+        <button onClick={handlePdfExport} disabled={exportingPdf}
           className="w-full bg-primary text-primary-foreground rounded-2xl py-3.5 font-semibold flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm active:scale-[0.98] transition-transform">
-          <FileDown size={18} /> Export PDF Booklet
+          <FileDown size={18} /> {exportingPdf ? 'Generating PDF…' : 'Export PDF Booklet'}
         </button>
-        <button onClick={handleStoryExport} disabled={exporting}
+        <button onClick={handleStoryExport} disabled={exportingIg}
           className="w-full bg-accent text-accent-foreground rounded-2xl py-3.5 font-semibold flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm active:scale-[0.98] transition-transform">
-          <Share2 size={18} /> Export IG Story (3 PNGs)
+          <Share2 size={18} /> {exportingIg ? 'Generating IG images…' : 'Export IG Story (3 PNGs)'}
         </button>
         <p className="text-xs text-muted-foreground text-center">
           PDF supports Chinese text if NotoSansTC font is placed in /public/fonts/
