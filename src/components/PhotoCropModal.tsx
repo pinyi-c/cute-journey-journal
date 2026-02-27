@@ -82,8 +82,8 @@ export function PhotoCropModal({ file, onCancel, onConfirm }: Props) {
   return (
     <Dialog open={!!file} onOpenChange={open => { if (!open) onCancel(); }}>
       <DialogContent
-        className="fixed inset-0 z-50 w-full max-w-none p-0 flex flex-col bg-background border-0 sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:max-w-md sm:rounded-lg sm:border sm:h-[90vh] h-[100dvh]"
-        style={{ height: '100dvh' }}
+        className="fixed inset-0 z-50 w-full max-w-none p-0 flex flex-col bg-background border-0 sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:max-w-md sm:rounded-lg sm:border sm:h-[90vh]"
+        style={{ height: 'var(--app-height, 100dvh)' }}
       >
         <div className="flex-1 min-h-0 relative bg-black">
           {imageUrl && (

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,24 +13,41 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <JourneyProvider>
-          <Routes>
-            <Route path="/" element={<Onboarding />} />
-            <Route path="/challenges" element={<Challenges />} />
-            <Route path="/gallery" element={<Gallery />} />
-            <Route path="/summary" element={<Summary />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </JourneyProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  useEffect(() => {
+    const setAppHeight = () => {
+      if (typeof window === "undefined") return;
+      const height = window.innerHeight;
+      document.documentElement.style.setProperty("--app-height", `${height}px`);
+    };
+    setAppHeight();
+    window.addEventListener("resize", setAppHeight);
+    window.addEventListener("orientationchange", setAppHeight);
+    return () => {
+      window.removeEventListener("resize", setAppHeight);
+      window.removeEventListener("orientationchange", setAppHeight);
+    };
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <JourneyProvider>
+            <Routes>
+              <Route path="/" element={<Onboarding />} />
+              <Route path="/challenges" element={<Challenges />} />
+              <Route path="/gallery" element={<Gallery />} />
+              <Route path="/summary" element={<Summary />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </JourneyProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
