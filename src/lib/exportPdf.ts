@@ -367,23 +367,24 @@ export async function exportPdf(journey: Journey) {
         y += (lines as string[]).length * 6;
       }
 
-      // Photos (up to 3, in a horizontal strip)
+      // Photos (up to 3, in a left-aligned horizontal strip)
       const photoIds = challenge.photoIds.slice(0, 3);
       if (photoIds.length > 0) {
         const photoSize = 40;
         const gap = 5;
-        const totalWidth = photoIds.length * photoSize + (photoIds.length - 1) * gap;
-        let x = margin;
-        if (totalWidth < pageWidth - 2 * margin) {
-          x = margin + (pageWidth - 2 * margin - totalWidth) / 2;
-        }
 
+        // Thin divider above the photo block for visual separation
+        doc.setDrawColor(210);
+        doc.setLineWidth(0.2);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 4;
+
+        let x = margin;
         for (const pid of photoIds) {
           const blob = await getPhoto(pid);
           if (blob) {
             try {
               const originalDataUrl = await blobToDataUrl(blob);
-              // Debug path: render original data URL directly to ensure photos appear.
               const format = originalDataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
               doc.addImage(originalDataUrl, format, x, y, photoSize, photoSize);
             } catch (e) {
