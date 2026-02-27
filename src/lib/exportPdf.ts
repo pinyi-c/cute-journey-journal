@@ -1,10 +1,12 @@
 import { Journey } from './journeyContext';
 import { getPhoto, blobToDataUrl } from './photoDb';
 
-// Strip emojis and other symbols not covered by our embedded CJK font.
-// This keeps PDF text stable even when titles contain emoji.
 function safeTitleForPDF(text: string): string {
-  return text.replace(/[^\p{L}\p{N}\p{P}\p{Zs}]/gu, '');
+  // Strip leading checkbox-style markers like "[x] " or "[ ] "
+  const withoutCheckbox = text.replace(/^\s*\[(x|X| )\]\s*/u, '');
+  // Strip emojis and other symbols not covered by our embedded CJK font.
+  // This keeps PDF text stable even when titles contain emoji.
+  return withoutCheckbox.replace(/[^\p{L}\p{N}\p{P}\p{Zs}]/gu, '');
 }
 
 function arrayBufferToBinaryString(buffer: ArrayBuffer): string {
@@ -85,16 +87,16 @@ export async function exportPdf(journey: Journey) {
     pageWidth / 2, y, { align: 'center' }
   );
 
-  // Challenge pages
-  for (const challenge of journey.challenges) {
+  // Challenge pages (only export completed challenges)
+  const completedChallenges = journey.challenges.filter(c => c.completed);
+  for (const challenge of completedChallenges) {
     doc.addPage();
     y = 25;
     if (activeFontName) {
       doc.setFont(activeFontName);
     }
     doc.setFontSize(16);
-    const statusPrefix = challenge.completed ? '[x] ' : '[ ] ';
-    doc.text(statusPrefix + safeTitleForPDF(challenge.title), margin, y);
+    doc.text(safeTitleForPDF(challenge.title), margin, y);
     y += 10;
     doc.setFontSize(10);
     if (challenge.date) {

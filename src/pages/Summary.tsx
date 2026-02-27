@@ -88,14 +88,19 @@ export default function Summary() {
 
       <div className="mx-4 space-y-3">
         <h2 className="font-bold">Export Your Journey</h2>
-        <button onClick={handlePdfExport} disabled={exportingPdf}
+        <button onClick={handlePdfExport} disabled={exportingPdf || completed === 0}
           className="w-full bg-primary text-primary-foreground rounded-2xl py-3.5 font-semibold flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm active:scale-[0.98] transition-transform">
           <FileDown size={18} /> {exportingPdf ? 'Generating PDF…' : 'Export PDF Booklet'}
         </button>
-        <button onClick={handleStoryExport} disabled={exportingIg}
+        <button onClick={handleStoryExport} disabled={exportingIg || completed === 0}
           className="w-full bg-accent text-accent-foreground rounded-2xl py-3.5 font-semibold flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm active:scale-[0.98] transition-transform">
           <Share2 size={18} /> {exportingIg ? 'Generating IG images…' : 'Export IG Story (3 PNGs)'}
         </button>
+        {completed === 0 && (
+          <p className="text-xs text-muted-foreground text-center">
+            Complete at least one challenge to export your journey.
+          </p>
+        )}
         <p className="text-xs text-muted-foreground text-center">
           PDF supports Chinese text if NotoSansTC font is placed in /public/fonts/
         </p>

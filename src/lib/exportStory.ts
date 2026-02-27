@@ -1,6 +1,10 @@
 import { Journey } from './journeyContext';
 import { getPhoto, blobToDataUrl } from './photoDb';
 
+function stripCheckboxPrefix(title: string): string {
+  return title.replace(/^\s*\[(x|X| )\]\s*/u, '');
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -64,11 +68,12 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 export async function exportIgStory(journey: Journey) {
   const W = 1080, H = 1920;
   const colors = getThemeColors(journey.theme);
-  const completed = journey.challenges.filter(c => c.completed).length;
+  const completedChallenges = journey.challenges.filter(c => c.completed);
+  const completed = completedChallenges.length;
   const total = journey.challenges.length;
 
-  // Collect photos
-  const allPhotoIds = journey.challenges.flatMap(c => c.photoIds);
+  // Collect photos from completed challenges only
+  const allPhotoIds = completedChallenges.flatMap(c => c.photoIds);
   const photoDataUrls: string[] = [];
   for (const pid of allPhotoIds.slice(0, 6)) {
     const blob = await getPhoto(pid);
@@ -191,16 +196,16 @@ export async function exportIgStory(journey: Journey) {
     ctx.textAlign = 'center';
     ctx.fillText('Top Moments 🌟', W / 2, 150);
 
-    const completedChallenges = journey.challenges.filter(c => c.completed).slice(0, 6);
+    const topCompleted = completedChallenges.slice(0, 6);
     let y = 300;
     ctx.textAlign = 'left';
-    for (const c of completedChallenges) {
+    for (const c of topCompleted) {
       ctx.fillStyle = colors.accent;
       ctx.font = 'bold 40px Nunito, sans-serif';
       ctx.fillText('✅', 80, y);
       ctx.fillStyle = colors.fg;
       ctx.font = '36px Nunito, sans-serif';
-      ctx.fillText(c.title, 150, y);
+      ctx.fillText(stripCheckboxPrefix(c.title), 150, y);
       if (c.caption) {
         ctx.font = '28px Nunito, sans-serif';
         ctx.fillStyle = colors.fg + 'AA';
