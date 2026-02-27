@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Challenge, useJourney } from '@/lib/journeyContext';
 import { PhotoUpload } from './PhotoUpload';
 import { ChevronDown, ChevronUp, Trash2, Check } from 'lucide-react';
@@ -6,12 +6,12 @@ import { deletePhoto } from '@/lib/photoDb';
 
 interface Props {
   challenge: Challenge;
-  autoExpand?: boolean;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
 }
 
-export function ChallengeItem({ challenge, autoExpand }: Props) {
+export function ChallengeItem({ challenge, isExpanded, onToggleExpand }: Props) {
   const { updateChallenge, deleteChallenge } = useJourney();
-  const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(challenge.title);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -32,12 +32,6 @@ export function ChallengeItem({ challenge, autoExpand }: Props) {
     deleteChallenge(challenge.id);
   };
 
-  useEffect(() => {
-    if (autoExpand) {
-      setExpanded(true);
-    }
-  }, [autoExpand]);
-
   return (
     <div
       className={`rounded-2xl border bg-card shadow-sm transition-all ${
@@ -47,7 +41,7 @@ export function ChallengeItem({ challenge, autoExpand }: Props) {
       {/* Header */}
       <div
         className="flex items-center gap-3 p-3 cursor-pointer"
-        onClick={() => !editing && setExpanded(!expanded)}
+        onClick={() => !editing && onToggleExpand()}
       >
         <button
           onClick={(e) => {
@@ -93,7 +87,7 @@ export function ChallengeItem({ challenge, autoExpand }: Props) {
           </span>
         )}
 
-        {expanded ? (
+        {isExpanded ? (
           <ChevronUp size={16} className="text-muted-foreground flex-shrink-0" />
         ) : (
           <ChevronDown size={16} className="text-muted-foreground flex-shrink-0" />
@@ -101,7 +95,7 @@ export function ChallengeItem({ challenge, autoExpand }: Props) {
       </div>
 
       {/* Expanded */}
-      {expanded && (
+      {isExpanded && (
         <div className="px-3 pb-3 space-y-3 border-t border-border pt-3">
           <p className="text-xs text-muted-foreground">
             💡 Double-tap title to edit

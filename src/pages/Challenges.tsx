@@ -11,7 +11,7 @@ export default function Challenges() {
   const [newTitle, setNewTitle] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
-  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [expandedChallengeId, setExpandedChallengeId] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -39,8 +39,7 @@ export default function Challenges() {
     const params = new URLSearchParams(location.search);
     const focus = params.get('focus');
     if (focus && journey.challenges.some(c => c.id === focus)) {
-      setFocusedId(focus);
-      // Scroll after DOM paints
+      setExpandedChallengeId(focus);
       requestAnimationFrame(() => {
         const el = itemRefs.current[focus];
         if (el) {
@@ -115,7 +114,10 @@ export default function Challenges() {
           >
             <ChallengeItem
               challenge={c}
-              autoExpand={focusedId === c.id}
+              isExpanded={expandedChallengeId === c.id}
+              onToggleExpand={() =>
+                setExpandedChallengeId(prev => (prev === c.id ? null : c.id))
+              }
             />
           </div>
         ))}
