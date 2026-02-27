@@ -114,6 +114,68 @@ function ensureSpace(
   return currentY + requiredHeight > pageHeight - marginBottom;
 }
 
+async function createRoundedImageDataUrl(
+  sourceDataUrl: string,
+  targetW: number,
+  targetH: number,
+  radius: number,
+): Promise<string> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = sourceDataUrl;
+  });
+
+  const scale = 4; // oversample for smoother edges
+  const canvas = document.createElement('canvas');
+  canvas.width = targetW * scale;
+  canvas.height = targetH * scale;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Failed to get canvas context');
+
+  const r = radius * scale;
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.beginPath();
+  ctx.moveTo(r, 0);
+  ctx.lineTo(w - r, 0);
+  ctx.quadraticCurveTo(w, 0, w, r);
+  ctx.lineTo(w, h - r);
+  ctx.quadraticCurveTo(w, h, w - r, h);
+  ctx.lineTo(r, h);
+  ctx.quadraticCurveTo(0, h, 0, h - r);
+  ctx.lineTo(0, r);
+  ctx.quadraticCurveTo(0, 0, r, 0);
+  ctx.closePath();
+  ctx.clip();
+
+  // cover behavior
+  const imgRatio = img.width / img.height;
+  const boxRatio = w / h;
+  let sx: number;
+  let sy: number;
+  let sw: number;
+  let sh: number;
+  if (imgRatio > boxRatio) {
+    sh = img.height;
+    sw = sh * boxRatio;
+    sx = (img.width - sw) / 2;
+    sy = 0;
+  } else {
+    sw = img.width;
+    sh = sw / boxRatio;
+    sx = 0;
+    sy = (img.height - sh) / 2;
+  }
+
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+
+  return canvas.toDataURL('image/png');
+}
+
 export async function exportPdf(journey: Journey) {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -154,36 +216,94 @@ export async function exportPdf(journey: Journey) {
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
-  let y = 40;
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  // Light paper-like background for all pages
+  doc.setFillColor(250, 247, 242);
+  doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+  let y = 32;
 
   // Cover page
   // Always ensure our embedded CJK font is active before any text.
   if (activeFontName) {
     doc.setFont(activeFontName, 'normal');
   }
-  doc.setFontSize(22);
+  // Small "issue" label
+  doc.setTextColor(130);
+  doc.setFontSize(9);
+  const issueLabel = journey.startDate && journey.endDate
+    ? `TRIP LOG • ${journey.startDate} – ${journey.endDate}`
+    : 'TRIP LOG';
+  doc.text(issueLabel, margin, y);
+  y += 10;
+
+  // Big title
+  doc.setTextColor(40);
+  doc.setFontSize(24);
   doc.text(safeTitleForPDF(journey.title), pageWidth / 2, y, { align: 'center' });
-  y += 12;
+  y += 10;
+
+  // Date line under title
   doc.setFontSize(12);
+  doc.setTextColor(100);
   doc.text(
     `${journey.startDate}${journey.endDate ? ' – ' + journey.endDate : ''}`,
-    pageWidth / 2, y, { align: 'center' }
+    pageWidth / 2,
+    y,
+    { align: 'center' },
   );
-  y += 8;
+  y += 12;
   if (journey.buddyName) {
+    doc.setFontSize(10);
     doc.text(`with ${journey.buddyName}`, pageWidth / 2, y, { align: 'center' });
     y += 8;
   }
-  y += 10;
+  y += 6;
   const completed = journey.challenges.filter(c => c.completed).length;
-  doc.setFontSize(14);
+  doc.setFontSize(10);
+  doc.setTextColor(120);
   doc.text(
-    `${completed} / ${journey.challenges.length} Challenges Completed`,
-    pageWidth / 2, y, { align: 'center' }
+    `${completed} / ${journey.challenges.length} challenges completed`,
+    pageWidth / 2,
+    y,
+    { align: 'center' },
   );
 
-  // Challenge pages (only export completed challenges, grouped diary-style by date)
+  // Hero photo collage on cover using first completed challenge photo (if any)
   const completedChallenges = journey.challenges.filter(c => c.completed);
+  let heroPlaced = false;
+  if (completedChallenges.length > 0) {
+    outer: for (const c of completedChallenges) {
+      for (const pid of c.photoIds) {
+        const blob = await getPhoto(pid);
+        if (blob) {
+          try {
+            const originalDataUrl = await blobToDataUrl(blob);
+            const heroW = pageWidth - margin * 2;
+            const heroH = 70;
+            const cropped = await cropImageToDataURL(originalDataUrl, heroW, heroH);
+            const rounded = await createRoundedImageDataUrl(cropped, heroW, heroH, 6);
+            const format = rounded.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+            const heroX = margin;
+            const heroY = y + 10;
+            doc.addImage(rounded, format, heroX, heroY, heroW, heroH);
+            y = heroY + heroH + 12;
+            heroPlaced = true;
+            break outer;
+          } catch {
+            // skip bad hero image
+          }
+        }
+      }
+    }
+  }
+
+  if (!heroPlaced) {
+    y += 12;
+  }
+
+  // Challenge pages (only export completed challenges, grouped diary-style by date)
   const groups = groupByDate(completedChallenges, journey);
   const marginTop = 25;
   const marginBottom = 20;
@@ -197,10 +317,18 @@ export async function exportPdf(journey: Journey) {
     if (activeFontName) {
       doc.setFont(activeFontName, 'normal');
     }
+    doc.setFillColor(250, 247, 242);
+    doc.rect(0, 0, pageWidth, pageHeight, 'F');
     y = marginTop;
-    doc.setFontSize(14);
+    doc.setFontSize(11);
+    doc.setTextColor(80);
     doc.text(group.label, margin, y);
-    y += 8;
+    y += 4;
+    // thin divider
+    doc.setDrawColor(210);
+    doc.setLineWidth(0.2);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 6;
 
     for (const challenge of group.challenges) {
       const blockHeight = estimateBlockHeight(doc, challenge, pageWidth, margin);
@@ -210,33 +338,53 @@ export async function exportPdf(journey: Journey) {
         if (activeFontName) {
           doc.setFont(activeFontName, 'normal');
         }
+        doc.setFillColor(250, 247, 242);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
         y = marginTop;
-        doc.setFontSize(12);
+        doc.setFontSize(9);
+        doc.setTextColor(100);
         doc.text(`${group.label} (cont.)`, margin, y);
-        y += 8;
+        y += 6;
       } else if (isFirstPageForGroup && ensureSpace(doc, blockHeight, marginTop, marginBottom, y)) {
         // Extremely full first page: start fresh with "(cont.)"
         doc.addPage();
         if (activeFontName) {
           doc.setFont(activeFontName, 'normal');
         }
+        doc.setFillColor(250, 247, 242);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
         y = marginTop;
-        doc.setFontSize(12);
+        doc.setFontSize(9);
+        doc.setTextColor(100);
         doc.text(`${group.label} (cont.)`, margin, y);
-        y += 8;
+        y += 6;
       }
 
       isFirstPageForGroup = false;
 
       // Title
-      doc.setFontSize(16);
+      doc.setFontSize(13);
       if (activeFontName) {
         doc.setFont(activeFontName, 'normal');
       }
+      doc.setTextColor(40);
       doc.text(safeTitleForPDF(challenge.title), margin, y);
-      y += 10;
+      y += 6;
 
-      // Caption
+      // Small metadata line (date / location)
+      doc.setFontSize(8);
+      doc.setTextColor(120);
+      const metaParts: string[] = [];
+      if (challenge.date) metaParts.push(challenge.date);
+      if (challenge.location) metaParts.push(challenge.location);
+      if (metaParts.length > 0) {
+        doc.text(metaParts.join(' • '), margin, y);
+        y += 6;
+      } else {
+        y += 2;
+      }
+
+      // Caption (italic-like: smaller + quotes)
       if (challenge.caption) {
         doc.setFontSize(11);
         const cap = sanitizeForPDF(challenge.caption);
@@ -250,7 +398,9 @@ export async function exportPdf(journey: Journey) {
             `PDF export: active font before caption is "${currentFont.fontName}", expected "${FONT_NAME_TC}".`
           );
         }
-        const lines = doc.splitTextToSize(cap, pageWidth - 2 * margin);
+        doc.setTextColor(90);
+        const quoted = `“${cap}”`;
+        const lines = doc.splitTextToSize(quoted, pageWidth - 2 * margin);
         y += 2;
         doc.text(lines, margin, y);
         y += (lines as string[]).length * 6;
@@ -272,9 +422,10 @@ export async function exportPdf(journey: Journey) {
           if (blob) {
             try {
               const originalDataUrl = await blobToDataURL(blob);
-              const dataUrl = await cropImageToDataURL(originalDataUrl, photoSize, photoSize);
-              const format = dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-              doc.addImage(dataUrl, format, x, y, photoSize, photoSize);
+              const cropped = await cropImageToDataURL(originalDataUrl, photoSize, photoSize);
+              const rounded = await createRoundedImageDataUrl(cropped, photoSize, photoSize, 5);
+              const format = rounded.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+              doc.addImage(rounded, format, x, y, photoSize, photoSize);
             } catch {
               // skip this photo
             }
