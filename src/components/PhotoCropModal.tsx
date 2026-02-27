@@ -81,8 +81,11 @@ export function PhotoCropModal({ file, onCancel, onConfirm }: Props) {
 
   return (
     <Dialog open={!!file} onOpenChange={open => { if (!open) onCancel(); }}>
-      <DialogContent className="w-full max-w-none h-screen sm:h-[90vh] sm:max-w-md p-0 flex flex-col bg-background">
-        <div className="flex-1 relative bg-black">
+      <DialogContent
+        className="fixed inset-0 z-50 w-full max-w-none p-0 flex flex-col bg-background border-0 sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:max-w-md sm:rounded-lg sm:border sm:h-[90vh] h-[100dvh]"
+        style={{ height: '100dvh' }}
+      >
+        <div className="flex-1 min-h-0 relative bg-black">
           {imageUrl && (
             <Cropper
               image={imageUrl}
@@ -95,7 +98,10 @@ export function PhotoCropModal({ file, onCancel, onConfirm }: Props) {
             />
           )}
         </div>
-        <div className="p-4 flex items-center justify-between border-t bg-background">
+        <div
+          className="flex-shrink-0 w-full p-3 flex items-center justify-between border-t bg-background/95 backdrop-blur-sm"
+          style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+        >
           <button
             type="button"
             className="text-sm text-muted-foreground"
