@@ -145,7 +145,7 @@ export async function exportPdf(journey: Journey) {
   await tryLoadFont('/fonts/NotoSansTC-Regular.ttf', FONT_FILE_TC, FONT_NAME_TC);
 
   if (!fontLoaded || !activeFontName) {
-    throw new Error(
+    console.error(
       'PDF export: failed to load NotoSansTC-Regular.ttf from /public/fonts. ' +
       'Place the TTF at public/fonts/NotoSansTC-Regular.ttf so CJK text can render.'
     );
@@ -157,7 +157,9 @@ export async function exportPdf(journey: Journey) {
 
   // Cover page
   // Always ensure our embedded CJK font is active before any text.
-  doc.setFont(activeFontName, 'normal');
+  if (activeFontName) {
+    doc.setFont(activeFontName, 'normal');
+  }
   doc.setFontSize(22);
   doc.text(safeTitleForPDF(journey.title), pageWidth / 2, y, { align: 'center' });
   y += 12;
@@ -191,7 +193,9 @@ export async function exportPdf(journey: Journey) {
     if (group.challenges.length === 0) continue;
 
     doc.addPage();
-    doc.setFont(activeFontName, 'normal');
+    if (activeFontName) {
+      doc.setFont(activeFontName, 'normal');
+    }
     y = marginTop;
     doc.setFontSize(14);
     doc.text(group.label, margin, y);
@@ -202,7 +206,9 @@ export async function exportPdf(journey: Journey) {
 
       if (!isFirstPageForGroup && ensureSpace(doc, blockHeight, marginTop, marginBottom, y)) {
         doc.addPage();
-        doc.setFont(activeFontName, 'normal');
+        if (activeFontName) {
+          doc.setFont(activeFontName, 'normal');
+        }
         y = marginTop;
         doc.setFontSize(12);
         doc.text(`${group.label} (cont.)`, margin, y);
@@ -210,7 +216,9 @@ export async function exportPdf(journey: Journey) {
       } else if (isFirstPageForGroup && ensureSpace(doc, blockHeight, marginTop, marginBottom, y)) {
         // Extremely full first page: start fresh with "(cont.)"
         doc.addPage();
-        doc.setFont(activeFontName, 'normal');
+        if (activeFontName) {
+          doc.setFont(activeFontName, 'normal');
+        }
         y = marginTop;
         doc.setFontSize(12);
         doc.text(`${group.label} (cont.)`, margin, y);
@@ -221,7 +229,9 @@ export async function exportPdf(journey: Journey) {
 
       // Title
       doc.setFontSize(16);
-      doc.setFont(activeFontName, 'normal');
+      if (activeFontName) {
+        doc.setFont(activeFontName, 'normal');
+      }
       doc.text(safeTitleForPDF(challenge.title), margin, y);
       y += 10;
 
@@ -230,10 +240,12 @@ export async function exportPdf(journey: Journey) {
         doc.setFontSize(11);
         const cap = sanitizeForPDF(challenge.caption);
         // Ensure the embedded CJK font is active before caption text.
-        doc.setFont(activeFontName, 'normal');
+        if (activeFontName) {
+          doc.setFont(activeFontName, 'normal');
+        }
         const currentFont = doc.getFont();
         if (currentFont.fontName !== FONT_NAME_TC) {
-          throw new Error(
+          console.warn(
             `PDF export: active font before caption is "${currentFont.fontName}", expected "${FONT_NAME_TC}".`
           );
         }
@@ -260,7 +272,8 @@ export async function exportPdf(journey: Journey) {
             try {
               const originalDataUrl = await blobToDataURL(blob);
               const dataUrl = await cropImageToDataURL(originalDataUrl, photoSize, photoSize);
-              doc.addImage(dataUrl, 'JPEG', x, y, photoSize, photoSize);
+              const format = dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+              doc.addImage(dataUrl, format, x, y, photoSize, photoSize);
             } catch {
               // skip this photo
             }
@@ -276,5 +289,6 @@ export async function exportPdf(journey: Journey) {
     }
   }
 
-  doc.save(`${journey.title}.pdf`);
+  const safeName = sanitizeForPDF(journey.title || 'journey') || 'journey';
+  doc.save(`${safeName}.pdf`);
 }
