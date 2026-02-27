@@ -20,13 +20,14 @@ function safeTitleForPDF(text: string): string {
   return sanitizeForPDF(withoutCheckbox);
 }
 
-function arrayBufferToBinaryString(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
   let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
   }
-  return binary;
+  return btoa(binary);
 }
 
 type JourneyChallenge = Journey['challenges'][number];
@@ -129,8 +130,8 @@ export async function exportPdf(journey: Journey) {
         return;
       }
       const buffer = await resp.arrayBuffer();
-      const binary = arrayBufferToBinaryString(buffer);
-      doc.addFileToVFS(fileName, binary);
+      const base64 = arrayBufferToBase64(buffer);
+      doc.addFileToVFS(fileName, base64);
       // Register TTF with Identity-H so CJK text uses Unicode, not WinAnsi.
       doc.addFont(fileName, fontName, 'normal', 'Identity-H');
       doc.setFont(fontName, 'normal');
