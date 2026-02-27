@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useJourney, ThemeId } from '@/lib/journeyContext';
 import { ThemePicker } from '@/components/ThemePicker';
 import mascotUrl from '@/assets/mascot.svg';
+import { INPUT_FIELD_CLASSES } from '@/lib/constants';
 
 export default function Onboarding() {
   const { journey, createJourney, updateJourneyDetails, resetJourney } = useJourney();
@@ -70,7 +71,7 @@ export default function Onboarding() {
           <input
             value={title}
             onChange={e => setTitle(e.target.value)}
-            className="w-full p-3 rounded-2xl bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className={INPUT_FIELD_CLASSES}
           />
         </div>
 
@@ -81,7 +82,7 @@ export default function Onboarding() {
               type="date"
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
-              className="w-full p-3 rounded-2xl bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className={INPUT_FIELD_CLASSES}
               required
             />
           </div>
@@ -91,7 +92,7 @@ export default function Onboarding() {
               type="date"
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
-              className="w-full p-3 rounded-2xl bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className={INPUT_FIELD_CLASSES}
             />
           </div>
         </div>
@@ -102,7 +103,7 @@ export default function Onboarding() {
             value={buddyName}
             onChange={e => setBuddyName(e.target.value)}
             placeholder="Optional travel buddy 🧸"
-            className="w-full p-3 rounded-2xl bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className={INPUT_FIELD_CLASSES}
           />
         </div>
 

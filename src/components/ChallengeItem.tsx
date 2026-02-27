@@ -3,6 +3,7 @@ import { Challenge, useJourney } from '@/lib/journeyContext';
 import { PhotoUpload } from './PhotoUpload';
 import { ChevronDown, ChevronUp, Trash2, Check } from 'lucide-react';
 import { deletePhoto } from '@/lib/photoDb';
+import { INPUT_FIELD_CLASSES, TEXTAREA_FIELD_CLASSES } from '@/lib/constants';
 
 interface Props {
   challenge: Challenge;
@@ -107,7 +108,7 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand }: Props) 
               value={challenge.caption}
               onChange={e => updateChallenge(challenge.id, { caption: e.target.value })}
               placeholder="Write something cute..."
-              className="w-full mt-1 p-2.5 rounded-xl bg-muted/50 border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+              className={TEXTAREA_FIELD_CLASSES}
               rows={2}
             />
           </div>
@@ -119,7 +120,7 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand }: Props) 
                 type="date"
                 value={challenge.date}
                 onChange={e => updateChallenge(challenge.id, { date: e.target.value })}
-                className="w-full mt-1 p-2.5 rounded-xl bg-muted/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className={INPUT_FIELD_CLASSES}
               />
             </div>
             <div className="flex-1">
@@ -128,7 +129,7 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand }: Props) 
                 value={challenge.location}
                 onChange={e => updateChallenge(challenge.id, { location: e.target.value })}
                 placeholder="📍 Where?"
-                className="w-full mt-1 p-2.5 rounded-xl bg-muted/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className={INPUT_FIELD_CLASSES}
               />
             </div>
           </div>
