@@ -10,6 +10,7 @@ import Challenges from "./pages/Challenges";
 import Gallery from "./pages/Gallery";
 import Summary from "./pages/Summary";
 import NotFound from "./pages/NotFound";
+import Crop from "./pages/Crop";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Onboarding />} />
               <Route path="/challenges" element={<Challenges />} />
+              <Route path="/crop" element={<Crop />} />
               <Route path="/gallery" element={<Gallery />} />
               <Route path="/summary" element={<Summary />} />
               <Route path="*" element={<NotFound />} />

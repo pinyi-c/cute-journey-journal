@@ -1,19 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
-import { savePhoto, deletePhoto, getPhotoUrl } from '@/lib/photoDb';
+import { useNavigate } from 'react-router-dom';
+import { deletePhoto, getPhotoUrl } from '@/lib/photoDb';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
-import { PhotoCropModal } from './PhotoCropModal';
 import { Plus, X } from 'lucide-react';
+import { setPendingCrop } from '@/lib/cropStore';
 
 interface Props {
   photoIds: string[];
   onPhotoIdsChange: (ids: string[]) => void;
+  challengeId: string;
 }
 
-export function PhotoUpload({ photoIds, onPhotoIdsChange }: Props) {
+export function PhotoUpload({ photoIds, onPhotoIdsChange, challengeId }: Props) {
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let cancelled = false;
@@ -33,7 +35,8 @@ export function PhotoUpload({ photoIds, onPhotoIdsChange }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (photoIds.length >= 3) return;
-    setPendingFile(file);
+    setPendingCrop({ file, challengeId });
+    navigate('/crop');
     if (inputRef.current) inputRef.current.value = '';
   };
 
@@ -80,16 +83,6 @@ export function PhotoUpload({ photoIds, onPhotoIdsChange }: Props) {
         <p className="text-xs text-muted-foreground mt-1">Maximum 3 photos reached! 📸</p>
       )}
       <PhotoPreviewModal url={previewUrl} onClose={() => setPreviewUrl(null)} />
-      <PhotoCropModal
-        file={pendingFile}
-        onCancel={() => setPendingFile(null)}
-        onConfirm={async (blob) => {
-          const id = crypto.randomUUID();
-          await savePhoto(id, blob);
-          onPhotoIdsChange([...photoIds, id]);
-          setPendingFile(null);
-        }}
-      />
     </div>
   );
 }

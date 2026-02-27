@@ -135,6 +135,7 @@ export function ChallengeItem({ challenge }: { challenge: Challenge }) {
             <PhotoUpload
               photoIds={challenge.photoIds}
               onPhotoIdsChange={(ids) => updateChallenge(challenge.id, { photoIds: ids })}
+              challengeId={challenge.id}
             />
           </div>
 
