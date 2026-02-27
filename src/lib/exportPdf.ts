@@ -229,16 +229,7 @@ export async function exportPdf(journey: Journey) {
   if (activeFontName) {
     doc.setFont(activeFontName, 'normal');
   }
-  // Small "issue" label
-  doc.setTextColor(130);
-  doc.setFontSize(9);
-  const issueLabel = journey.startDate && journey.endDate
-    ? `TRIP LOG • ${journey.startDate} – ${journey.endDate}`
-    : 'TRIP LOG';
-  doc.text(issueLabel, margin, y);
-  y += 10;
-
-  // Big title
+  // Big title only
   doc.setTextColor(40);
   doc.setFontSize(24);
   doc.text(safeTitleForPDF(journey.title), pageWidth / 2, y, { align: 'center' });
@@ -259,51 +250,21 @@ export async function exportPdf(journey: Journey) {
     doc.text(`with ${journey.buddyName}`, pageWidth / 2, y, { align: 'center' });
     y += 8;
   }
-  y += 6;
-  const completed = journey.challenges.filter(c => c.completed).length;
+  y += 10;
+
+  // Tagline
   doc.setFontSize(10);
   doc.setTextColor(120);
   doc.text(
-    `${completed} / ${journey.challenges.length} challenges completed`,
+    'Three days in Taipei, forever in the camera roll.',
     pageWidth / 2,
     y,
     { align: 'center' },
   );
-
-  // Hero photo collage on cover using first completed challenge photo (if any)
-  const completedChallenges = journey.challenges.filter(c => c.completed);
-  let heroPlaced = false;
-  if (completedChallenges.length > 0) {
-    outer: for (const c of completedChallenges) {
-      for (const pid of c.photoIds) {
-        const blob = await getPhoto(pid);
-        if (blob) {
-          try {
-            const originalDataUrl = await blobToDataUrl(blob);
-            const heroW = pageWidth - margin * 2;
-            const heroH = 70;
-            const cropped = await cropImageToDataURL(originalDataUrl, heroW, heroH);
-            const rounded = await createRoundedImageDataUrl(cropped, heroW, heroH, 6);
-            const format = rounded.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-            const heroX = margin;
-            const heroY = y + 10;
-            doc.addImage(rounded, format, heroX, heroY, heroW, heroH);
-            y = heroY + heroH + 12;
-            heroPlaced = true;
-            break outer;
-          } catch {
-            // skip bad hero image
-          }
-        }
-      }
-    }
-  }
-
-  if (!heroPlaced) {
-    y += 12;
-  }
+  y += 16;
 
   // Challenge pages (only export completed challenges, grouped diary-style by date)
+  const completedChallenges = journey.challenges.filter(c => c.completed);
   const groups = groupByDate(completedChallenges, journey);
   const marginTop = 25;
   const marginBottom = 20;
