@@ -1,6 +1,12 @@
 import { Journey } from './journeyContext';
 import { getPhoto, blobToDataUrl } from './photoDb';
 
+// Strip emojis and other symbols not covered by our embedded CJK font.
+// This keeps PDF text stable even when titles contain emoji.
+function safeTitleForPDF(text: string): string {
+  return text.replace(/[^\p{L}\p{N}\p{P}\p{Zs}]/gu, '');
+}
+
 function arrayBufferToBinaryString(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = '';
@@ -17,6 +23,7 @@ export async function exportPdf(journey: Journey) {
   // Load a CJK font so English / Chinese / Japanese render correctly.
   // We try Noto Sans CJK JP first, then fall back to Noto Sans TC.
   let fontLoaded = false;
+  let activeFontName: string | null = null;
   const tryLoadFont = async (url: string, fileName: string, fontName: string) => {
     try {
       const resp = await fetch(url);
@@ -30,6 +37,7 @@ export async function exportPdf(journey: Journey) {
       doc.addFont(fileName, fontName, 'normal');
       doc.setFont(fontName);
       fontLoaded = true;
+      activeFontName = fontName;
     } catch (e) {
       console.error(`Error while fetching PDF font "${url}":`, e);
     }
@@ -53,8 +61,11 @@ export async function exportPdf(journey: Journey) {
   let y = 40;
 
   // Cover page
+  if (activeFontName) {
+    doc.setFont(activeFontName);
+  }
   doc.setFontSize(22);
-  doc.text(journey.title, pageWidth / 2, y, { align: 'center' });
+  doc.text(safeTitleForPDF(journey.title), pageWidth / 2, y, { align: 'center' });
   y += 12;
   doc.setFontSize(12);
   doc.text(
@@ -78,8 +89,12 @@ export async function exportPdf(journey: Journey) {
   for (const challenge of journey.challenges) {
     doc.addPage();
     y = 25;
+    if (activeFontName) {
+      doc.setFont(activeFontName);
+    }
     doc.setFontSize(16);
-    doc.text(`${challenge.completed ? '✅' : '⬜'} ${challenge.title}`, margin, y);
+    const statusPrefix = challenge.completed ? '[x] ' : '[ ] ';
+    doc.text(statusPrefix + safeTitleForPDF(challenge.title), margin, y);
     y += 10;
     doc.setFontSize(10);
     if (challenge.date) {
