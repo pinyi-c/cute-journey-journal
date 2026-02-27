@@ -99,8 +99,8 @@ export function PhotoCropModal({ file, onCancel, onConfirm }: Props) {
           )}
         </div>
         <div
-          className="flex-shrink-0 w-full p-3 flex items-center justify-between border-t bg-background/95 backdrop-blur-sm"
-          style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+          className="mt-auto flex-shrink-0 w-full p-3 flex items-center justify-between border-t bg-background/95 backdrop-blur-sm"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
         >
           <button
             type="button"
