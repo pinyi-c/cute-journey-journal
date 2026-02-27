@@ -385,8 +385,13 @@ export async function exportPdf(journey: Journey) {
           if (blob) {
             try {
               const originalDataUrl = await blobToDataUrl(blob);
-              const format = originalDataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-              doc.addImage(originalDataUrl, format, x, y, photoSize, photoSize);
+              const croppedDataUrl = await cropImageToDataURL(
+                originalDataUrl,
+                photoSize,
+                photoSize,
+              );
+              const format = croppedDataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+              doc.addImage(croppedDataUrl, format, x, y, photoSize, photoSize);
             } catch (e) {
               console.error('PDF photo render failed', pid, e);
             }

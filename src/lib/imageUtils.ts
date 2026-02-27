@@ -31,6 +31,49 @@ export function drawImageCover(
   ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
 }
 
+function drawCoverCropToCanvas(
+  img: HTMLImageElement,
+  targetW: number,
+  targetH: number,
+  scale: number,
+): string {
+  const targetRatio = targetW / targetH;
+  const sourceRatio = img.width / img.height;
+
+  let sx: number;
+  let sy: number;
+  let sWidth: number;
+  let sHeight: number;
+
+  if (sourceRatio > targetRatio) {
+    sHeight = img.height;
+    sWidth = sHeight * targetRatio;
+    sx = (img.width - sWidth) / 2;
+    sy = 0;
+  } else {
+    sWidth = img.width;
+    sHeight = sWidth / targetRatio;
+    sx = 0;
+    sy = (img.height - sHeight) / 2;
+  }
+
+  const outW = Math.max(1, Math.round(targetW * scale));
+  const outH = Math.max(1, Math.round(targetH * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = outW;
+  canvas.height = outH;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Could not get canvas context');
+
+  ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, outW, outH);
+  return canvas.toDataURL('image/jpeg', 0.92);
+}
+
+/**
+ * Cover-crop source image to target aspect ratio (object-fit: cover).
+ * Never stretches; centers crop by default. Returns JPEG data URL for PDF.
+ */
 export async function cropImageToDataURL(
   sourceDataURL: string,
   targetW: number,
@@ -39,22 +82,22 @@ export async function cropImageToDataURL(
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
-    image.onerror = reject;
+    image.onerror = () => reject(new Error('Image load failed'));
     image.src = sourceDataURL;
   });
 
-  const boxRatio = targetW / targetH;
-  const baseWidth = 1024;
-  const baseHeight = Math.round(baseWidth / boxRatio);
+  if (typeof img.decode === 'function') {
+    await img.decode();
+  }
 
-  const canvas = document.createElement('canvas');
-  canvas.width = baseWidth;
-  canvas.height = baseHeight;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Could not get canvas context');
-
-  drawImageCover(ctx, img, 0, 0, canvas.width, canvas.height);
-
-  return canvas.toDataURL('image/jpeg', 0.9);
+  try {
+    return drawCoverCropToCanvas(img, targetW, targetH, 4);
+  } catch (e) {
+    try {
+      return drawCoverCropToCanvas(img, targetW, targetH, 1);
+    } catch {
+      throw e;
+    }
+  }
 }
 
