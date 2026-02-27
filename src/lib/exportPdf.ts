@@ -19,6 +19,89 @@ function arrayBufferToBinaryString(buffer: ArrayBuffer): string {
   return binary;
 }
 
+type JourneyChallenge = Journey['challenges'][number];
+
+type DateGroup = {
+  key: string;
+  label: string;
+  challenges: JourneyChallenge[];
+};
+
+function groupByDate(challenges: JourneyChallenge[], journey: Journey): DateGroup[] {
+  const map = new Map<string, DateGroup>();
+
+  for (const c of challenges) {
+    const key = c.date || journey.startDate || 'unknown';
+    let label: string;
+    if (key === 'unknown') {
+      label = 'Unknown date';
+    } else {
+      try {
+        const d = new Date(key);
+        // zh-TW diary-style formatting
+        label = new Intl.DateTimeFormat('zh-TW', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).format(d);
+      } catch {
+        label = key;
+      }
+    }
+
+    const existing = map.get(key);
+    if (existing) {
+      existing.challenges.push(c);
+    } else {
+      map.set(key, { key, label, challenges: [c] });
+    }
+  }
+
+  return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
+}
+
+function estimateBlockHeight(
+  doc: any,
+  challenge: JourneyChallenge,
+  pageWidth: number,
+  margin: number,
+): number {
+  let h = 0;
+
+  // Title line
+  h += 10;
+
+  // Caption lines
+  if (challenge.caption) {
+    const maxWidth = pageWidth - 2 * margin;
+    const lines = doc.splitTextToSize(challenge.caption, maxWidth) as string[];
+    h += 2; // spacing before caption
+    h += lines.length * 6;
+  }
+
+  // Photos (up to 3) – single row of 3 squares is roughly 60mm tall
+  const photoCount = Math.min(challenge.photoIds.length, 3);
+  if (photoCount > 0) {
+    h += 60;
+  }
+
+  // Spacing after block
+  h += 6;
+
+  return h;
+}
+
+function ensureSpace(
+  doc: any,
+  requiredHeight: number,
+  marginTop: number,
+  marginBottom: number,
+  currentY: number,
+): boolean {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  return currentY + requiredHeight > pageHeight - marginBottom;
+}
+
 export async function exportPdf(journey: Journey) {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -88,48 +171,96 @@ export async function exportPdf(journey: Journey) {
     pageWidth / 2, y, { align: 'center' }
   );
 
-  // Challenge pages (only export completed challenges)
+  // Challenge pages (only export completed challenges, grouped diary-style by date)
   const completedChallenges = journey.challenges.filter(c => c.completed);
-  for (const challenge of completedChallenges) {
+  const groups = groupByDate(completedChallenges, journey);
+  const marginTop = 25;
+  const marginBottom = 20;
+
+  for (const group of groups) {
+    let isFirstPageForGroup = true;
+
+    if (group.challenges.length === 0) continue;
+
     doc.addPage();
-    y = 25;
     if (activeFontName) {
       doc.setFont(activeFontName);
     }
-    doc.setFontSize(16);
-    doc.text(safeTitleForPDF(challenge.title), margin, y);
-    y += 10;
-    doc.setFontSize(10);
-    if (challenge.date) {
-      doc.text(`Date: ${challenge.date}`, margin, y);
-      y += 6;
-    }
-    if (challenge.location) {
-      doc.text(`Location: ${challenge.location}`, margin, y);
-      y += 6;
-    }
-    if (challenge.caption) {
-      y += 2;
-      doc.setFontSize(11);
-      const lines = doc.splitTextToSize(challenge.caption, pageWidth - 2 * margin);
-      doc.text(lines, margin, y);
-      y += lines.length * 6;
-    }
+    y = marginTop;
+    doc.setFontSize(14);
+    doc.text(group.label, margin, y);
+    y += 8;
 
-    for (const pid of challenge.photoIds) {
-      const blob = await getPhoto(pid);
-      if (blob) {
-        try {
-          const originalDataUrl = await blobToDataUrl(blob);
-          const dataUrl = await cropImageToDataURL(originalDataUrl, 55, 55);
-          if (y > 200) {
-            doc.addPage();
-            y = 25;
-          }
-          doc.addImage(dataUrl, 'JPEG', margin, y, 55, 55);
-          y += 60;
-        } catch { /* skip */ }
+    for (const challenge of group.challenges) {
+      const blockHeight = estimateBlockHeight(doc, challenge, pageWidth, margin);
+
+      if (!isFirstPageForGroup && ensureSpace(doc, blockHeight, marginTop, marginBottom, y)) {
+        doc.addPage();
+        if (activeFontName) {
+          doc.setFont(activeFontName);
+        }
+        y = marginTop;
+        doc.setFontSize(12);
+        doc.text(`${group.label} (cont.)`, margin, y);
+        y += 8;
+      } else if (isFirstPageForGroup && ensureSpace(doc, blockHeight, marginTop, marginBottom, y)) {
+        // Extremely full first page: start fresh with "(cont.)"
+        doc.addPage();
+        if (activeFontName) {
+          doc.setFont(activeFontName);
+        }
+        y = marginTop;
+        doc.setFontSize(12);
+        doc.text(`${group.label} (cont.)`, margin, y);
+        y += 8;
       }
+
+      isFirstPageForGroup = false;
+
+      // Title
+      doc.setFontSize(16);
+      doc.text(safeTitleForPDF(challenge.title), margin, y);
+      y += 10;
+
+      // Caption
+      if (challenge.caption) {
+        doc.setFontSize(11);
+        const lines = doc.splitTextToSize(challenge.caption, pageWidth - 2 * margin);
+        y += 2;
+        doc.text(lines, margin, y);
+        y += (lines as string[]).length * 6;
+      }
+
+      // Photos (up to 3, in a horizontal strip)
+      const photoIds = challenge.photoIds.slice(0, 3);
+      if (photoIds.length > 0) {
+        const photoSize = 40;
+        const gap = 5;
+        const totalWidth = photoIds.length * photoSize + (photoIds.length - 1) * gap;
+        let x = margin;
+        if (totalWidth < pageWidth - 2 * margin) {
+          x = margin + (pageWidth - 2 * margin - totalWidth) / 2;
+        }
+
+        for (const pid of photoIds) {
+          const blob = await getPhoto(pid);
+          if (blob) {
+            try {
+              const originalDataUrl = await blobToDataURL(blob);
+              const dataUrl = await cropImageToDataURL(originalDataUrl, photoSize, photoSize);
+              doc.addImage(dataUrl, 'JPEG', x, y, photoSize, photoSize);
+            } catch {
+              // skip this photo
+            }
+          }
+          x += photoSize + gap;
+        }
+
+        y += photoSize + 8;
+      }
+
+      // Spacing before next challenge
+      y += 6;
     }
   }
 
