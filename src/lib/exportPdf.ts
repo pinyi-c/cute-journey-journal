@@ -2,12 +2,18 @@ import { Journey } from './journeyContext';
 import { getPhoto, blobToDataUrl } from './photoDb';
 import { cropImageToDataURL } from './imageUtils';
 
+function sanitizeForPDF(text: string) {
+  return (text || '')
+    .replace(/\u2022/g, '-') // bullet • -> -
+    .replace(/[\u0000-\u001F\u007F]/g, '') // remove control chars
+    .replace(/[\u{1F300}-\u{1FAFF}]/gu, '') // strip emojis (best-effort)
+    .trim();
+}
+
 function safeTitleForPDF(text: string): string {
-  // Strip leading checkbox-style markers like "[x] " or "[ ] "
+  // Keep existing title-specific cleanup, then run generic sanitizer.
   const withoutCheckbox = text.replace(/^\s*\[(x|X| )\]\s*/u, '');
-  // Strip emojis and other symbols not covered by our embedded CJK font.
-  // This keeps PDF text stable even when titles contain emoji.
-  return withoutCheckbox.replace(/[^\p{L}\p{N}\p{P}\p{Zs}]/gu, '');
+  return sanitizeForPDF(withoutCheckbox);
 }
 
 function arrayBufferToBinaryString(buffer: ArrayBuffer): string {
@@ -74,7 +80,8 @@ function estimateBlockHeight(
   // Caption lines
   if (challenge.caption) {
     const maxWidth = pageWidth - 2 * margin;
-    const lines = doc.splitTextToSize(challenge.caption, maxWidth) as string[];
+    const cap = sanitizeForPDF(challenge.caption);
+    const lines = doc.splitTextToSize(cap, maxWidth) as string[];
     h += 2; // spacing before caption
     h += lines.length * 6;
   }
@@ -225,7 +232,11 @@ export async function exportPdf(journey: Journey) {
       // Caption
       if (challenge.caption) {
         doc.setFontSize(11);
-        const lines = doc.splitTextToSize(challenge.caption, pageWidth - 2 * margin);
+        const cap = sanitizeForPDF(challenge.caption);
+        if (activeFontName) {
+          doc.setFont(activeFontName);
+        }
+        const lines = doc.splitTextToSize(cap, pageWidth - 2 * margin);
         y += 2;
         doc.text(lines, margin, y);
         y += (lines as string[]).length * 6;
