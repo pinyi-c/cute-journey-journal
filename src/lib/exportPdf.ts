@@ -38,6 +38,30 @@ type DateGroup = {
   challenges: JourneyChallenge[];
 };
 
+// Cache cropped image data URLs per photo + target size to avoid
+// re-encoding the same image multiple times during a single export.
+const photoCropCache = new Map<string, string>();
+const PDF_PHOTO_PIXEL_SIZE = 1600; // high-res square crop for PDF thumbnails
+
+async function getCachedCroppedSquareForPdf(
+  photoId: string,
+  originalDataUrl: string,
+): Promise<string> {
+  const key = `${photoId}-${PDF_PHOTO_PIXEL_SIZE}`;
+  const cached = photoCropCache.get(key);
+  if (cached) return cached;
+
+  // Use a high-resolution square crop; jsPDF will render it at a fixed
+  // physical size (mm) so higher pixel density improves print quality.
+  const cropped = await cropImageToDataURL(
+    originalDataUrl,
+    PDF_PHOTO_PIXEL_SIZE,
+    PDF_PHOTO_PIXEL_SIZE,
+  );
+  photoCropCache.set(key, cropped);
+  return cropped;
+}
+
 function groupByDate(challenges: JourneyChallenge[], journey: Journey): DateGroup[] {
   const map = new Map<string, DateGroup>();
 
@@ -385,11 +409,7 @@ export async function exportPdf(journey: Journey) {
           if (blob) {
             try {
               const originalDataUrl = await blobToDataUrl(blob);
-              const croppedDataUrl = await cropImageToDataURL(
-                originalDataUrl,
-                photoSize,
-                photoSize,
-              );
+              const croppedDataUrl = await getCachedCroppedSquareForPdf(pid, originalDataUrl);
               const format = croppedDataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
               doc.addImage(croppedDataUrl, format, x, y, photoSize, photoSize);
             } catch (e) {

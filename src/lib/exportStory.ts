@@ -18,6 +18,8 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 function downloadCanvas(canvas: HTMLCanvasElement, filename: string) {
   const link = document.createElement('a');
   link.download = filename;
+  // Always export a true 1080x1920 PNG; callers are responsible for
+  // providing a canvas with the desired intrinsic resolution.
   link.href = canvas.toDataURL('image/png');
   document.body.appendChild(link);
   link.click();
@@ -67,7 +69,14 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 }
 
 export async function exportIgStory(journey: Journey) {
-  const W = 1080, H = 1920;
+  const W = 1080;
+  const H = 1920;
+  // Use devicePixelRatio (or a floor of 2) for crisper text/graphics,
+  // then downscale to 1080x1920 for the final exported PNG.
+  const DPR = typeof window !== 'undefined' && window.devicePixelRatio
+    ? Math.max(1, Math.min(window.devicePixelRatio, 3))
+    : 2;
+
   const colors = getThemeColors(journey.theme);
   const completedChallenges = journey.challenges.filter(c => c.completed);
   const completed = completedChallenges.length;
@@ -87,10 +96,12 @@ export async function exportIgStory(journey: Journey) {
 
   // --- Slide 1: Cover ---
   {
-    const canvas = document.createElement('canvas');
-    canvas.width = W;
-    canvas.height = H;
-    const ctx = canvas.getContext('2d')!;
+    // High-DPI working canvas
+    const workCanvas = document.createElement('canvas');
+    workCanvas.width = W * DPR;
+    workCanvas.height = H * DPR;
+    const ctx = workCanvas.getContext('2d')!;
+    ctx.scale(DPR, DPR);
     ctx.fillStyle = colors.bg;
     ctx.fillRect(0, 0, W, H);
 
@@ -123,15 +134,23 @@ export async function exportIgStory(journey: Journey) {
       ctx.fillText(`with ${journey.buddyName} 🧸`, W / 2, 1120);
     }
 
-    downloadCanvas(canvas, 'story-cover.png');
+    // Downscale to a true 1080x1920 export canvas.
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = W;
+    outCanvas.height = H;
+    const outCtx = outCanvas.getContext('2d')!;
+    outCtx.drawImage(workCanvas, 0, 0, outCanvas.width, outCanvas.height);
+
+    downloadCanvas(outCanvas, 'story-cover.png');
   }
 
   // --- Slide 2: Stats + Collage ---
   {
-    const canvas = document.createElement('canvas');
-    canvas.width = W;
-    canvas.height = H;
-    const ctx = canvas.getContext('2d')!;
+    const workCanvas = document.createElement('canvas');
+    workCanvas.width = W * DPR;
+    workCanvas.height = H * DPR;
+    const ctx = workCanvas.getContext('2d')!;
+    ctx.scale(DPR, DPR);
     ctx.fillStyle = colors.bg;
     ctx.fillRect(0, 0, W, H);
 
@@ -178,15 +197,22 @@ export async function exportIgStory(journey: Journey) {
       }
     }
 
-    downloadCanvas(canvas, 'story-stats.png');
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = W;
+    outCanvas.height = H;
+    const outCtx = outCanvas.getContext('2d')!;
+    outCtx.drawImage(workCanvas, 0, 0, outCanvas.width, outCanvas.height);
+
+    downloadCanvas(outCanvas, 'story-stats.png');
   }
 
   // --- Slide 3: Top Moments ---
   {
-    const canvas = document.createElement('canvas');
-    canvas.width = W;
-    canvas.height = H;
-    const ctx = canvas.getContext('2d')!;
+    const workCanvas = document.createElement('canvas');
+    workCanvas.width = W * DPR;
+    workCanvas.height = H * DPR;
+    const ctx = workCanvas.getContext('2d')!;
+    ctx.scale(DPR, DPR);
     ctx.fillStyle = colors.bg;
     ctx.fillRect(0, 0, W, H);
 
@@ -222,6 +248,12 @@ export async function exportIgStory(journey: Journey) {
       ctx.fillText('Complete challenges to see them here!', W / 2, H / 2);
     }
 
-    downloadCanvas(canvas, 'story-moments.png');
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = W;
+    outCanvas.height = H;
+    const outCtx = outCanvas.getContext('2d')!;
+    outCtx.drawImage(workCanvas, 0, 0, outCanvas.width, outCanvas.height);
+
+    downloadCanvas(outCanvas, 'story-moments.png');
   }
 }

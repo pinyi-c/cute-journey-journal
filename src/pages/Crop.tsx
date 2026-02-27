@@ -8,7 +8,7 @@ import { savePhoto } from '@/lib/photoDb';
 async function getCroppedImageFromFile(
   file: File,
   croppedAreaPixels: Area,
-  size = 1024,
+  size = 1600,
 ): Promise<Blob> {
   const imageUrl = URL.createObjectURL(file);
   try {
@@ -46,7 +46,7 @@ async function getCroppedImageFromFile(
           resolve(blob);
         },
         'image/jpeg',
-        0.9,
+        0.95,
       );
     });
   } finally {
