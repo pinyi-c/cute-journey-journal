@@ -135,7 +135,7 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand }: Props) 
 
           <div>
             <label className="text-xs text-muted-foreground font-medium mb-1 block">
-              Photos (max 3)
+              Photos (max 10)
             </label>
             <PhotoUpload
               photoIds={challenge.photoIds}

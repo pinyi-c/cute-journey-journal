@@ -79,26 +79,25 @@ export default function Gallery() {
               </p>
             )}
             {c.photoIds.length > 0 && (
-              <div
-                className={`grid gap-2 ${
-                  c.photoIds.length === 1
-                    ? 'grid-cols-1'
-                    : c.photoIds.length === 2
-                    ? 'grid-cols-2'
-                    : 'grid-cols-3'
-                }`}
-              >
-                {c.photoIds.map(
-                  pid =>
-                    photoUrls[pid] && (
-                      <img
-                        key={pid}
-                        src={photoUrls[pid]}
-                        alt={c.title}
-                        className="rounded-xl w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => setPreviewUrl(photoUrls[pid])}
-                      />
-                    )
+              <div className="space-y-1">
+                <div className="grid grid-cols-3 gap-2">
+                  {c.photoIds.slice(0, 6).map(
+                    pid =>
+                      photoUrls[pid] && (
+                        <img
+                          key={pid}
+                          src={photoUrls[pid]}
+                          alt={c.title}
+                          className="rounded-xl w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => setPreviewUrl(photoUrls[pid])}
+                        />
+                      )
+                  )}
+                </div>
+                {c.photoIds.length > 6 && (
+                  <p className="text-xs text-muted-foreground">
+                    +{c.photoIds.length - 6} more
+                  </p>
                 )}
               </div>
             )}

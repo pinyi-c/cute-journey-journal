@@ -115,7 +115,7 @@ function estimateBlockHeight(
     h += lines.length * 6;
   }
 
-  // Photos (up to 3) – single row of 3 squares is roughly 60mm tall
+  // Photos: PDF uses first 3 per challenge to avoid huge file size
   const photoCount = Math.min(challenge.photoIds.length, 3);
   if (photoCount > 0) {
     h += 60;
@@ -391,7 +391,7 @@ export async function exportPdf(journey: Journey) {
         y += (lines as string[]).length * 6;
       }
 
-      // Photos (up to 3, in a left-aligned horizontal strip)
+      // Photos: first 3 per challenge for PDF (layout limit; keeps file size reasonable)
       const photoIds = challenge.photoIds.slice(0, 3);
       if (photoIds.length > 0) {
         const photoSize = 40;

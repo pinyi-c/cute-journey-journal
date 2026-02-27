@@ -82,7 +82,7 @@ export async function exportIgStory(journey: Journey) {
   const completed = completedChallenges.length;
   const total = journey.challenges.length;
 
-  // Collect photos from completed challenges only
+  // IG Story: curated subset – first 6 photos from completed challenges
   const allPhotoIds = completedChallenges.flatMap(c => c.photoIds);
   const photoDataUrls: string[] = [];
   for (const pid of allPhotoIds.slice(0, 6)) {

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { consumePendingCrop } from '@/lib/cropStore';
 import { useJourney } from '@/lib/journeyContext';
 import { savePhoto } from '@/lib/photoDb';
+import { MAX_PHOTOS_PER_CHALLENGE } from '@/lib/constants';
 
 async function getCroppedImageFromFile(
   file: File,
@@ -91,7 +92,7 @@ export default function CropPage() {
       navigate('/challenges', { replace: true });
       return;
     }
-    if (challenge.photoIds.length >= 3) {
+    if (challenge.photoIds.length >= MAX_PHOTOS_PER_CHALLENGE) {
       navigate(`/challenges?focus=${encodeURIComponent(challengeId)}`, { replace: true });
       return;
     }

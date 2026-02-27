@@ -4,6 +4,8 @@ import { deletePhoto, getPhotoUrl } from '@/lib/photoDb';
 import { PhotoPreviewModal } from './PhotoPreviewModal';
 import { Plus, X } from 'lucide-react';
 import { setPendingCrop } from '@/lib/cropStore';
+import { toast } from '@/hooks/use-toast';
+import { MAX_PHOTOS_PER_CHALLENGE } from '@/lib/constants';
 
 interface Props {
   photoIds: string[];
@@ -34,7 +36,13 @@ export function PhotoUpload({ photoIds, onPhotoIdsChange, challengeId }: Props) 
   const handleAdd = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (photoIds.length >= 3) return;
+    if (photoIds.length >= MAX_PHOTOS_PER_CHALLENGE) {
+      toast({
+        title: 'Photo limit reached',
+        description: 'This challenge can have up to 10 photos.',
+      });
+      return;
+    }
     setPendingCrop({ file, challengeId });
     navigate(`/crop?cid=${encodeURIComponent(challengeId)}`);
     if (inputRef.current) inputRef.current.value = '';
@@ -47,9 +55,9 @@ export function PhotoUpload({ photoIds, onPhotoIdsChange, challengeId }: Props) 
 
   return (
     <div>
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 overflow-x-auto pb-1 flex-nowrap">
         {photoIds.map(id => (
-          <div key={id} className="relative w-20 h-20 rounded-xl overflow-hidden border border-border">
+          <div key={id} className="relative w-20 h-20 rounded-xl overflow-hidden border border-border flex-shrink-0">
             {urls[id] && (
               <img
                 src={urls[id]}
@@ -66,8 +74,8 @@ export function PhotoUpload({ photoIds, onPhotoIdsChange, challengeId }: Props) 
             </button>
           </div>
         ))}
-        {photoIds.length < 3 && (
-          <label className="w-20 h-20 rounded-xl border-2 border-dashed border-primary/40 flex items-center justify-center cursor-pointer hover:border-primary/70 transition-colors">
+        {photoIds.length < MAX_PHOTOS_PER_CHALLENGE && (
+          <label className="w-20 h-20 rounded-xl border-2 border-dashed border-primary/40 flex items-center justify-center cursor-pointer hover:border-primary/70 transition-colors flex-shrink-0">
             <Plus size={24} className="text-primary/50" />
             <input
               ref={inputRef}
@@ -79,8 +87,8 @@ export function PhotoUpload({ photoIds, onPhotoIdsChange, challengeId }: Props) 
           </label>
         )}
       </div>
-      {photoIds.length >= 3 && (
-        <p className="text-xs text-muted-foreground mt-1">Maximum 3 photos reached! 📸</p>
+      {photoIds.length >= MAX_PHOTOS_PER_CHALLENGE && (
+        <p className="text-xs text-muted-foreground mt-1">This challenge can have up to 10 photos. 📸</p>
       )}
       <PhotoPreviewModal url={previewUrl} onClose={() => setPreviewUrl(null)} />
     </div>
