@@ -1,5 +1,6 @@
 import { Journey } from './journeyContext';
 import { getPhoto, blobToDataUrl } from './photoDb';
+import { drawImageCover } from './imageUtils';
 
 function stripCheckboxPrefix(title: string): string {
   return title.replace(/^\s*\[(x|X| )\]\s*/u, '');
@@ -171,9 +172,7 @@ export async function exportIgStory(journey: Journey) {
           ctx.save();
           roundRect(ctx, x, y, size, size, 20);
           ctx.clip();
-          const scale = Math.max(size / img.width, size / img.height);
-          const sw = img.width * scale, sh = img.height * scale;
-          ctx.drawImage(img, x - (sw - size) / 2, y - (sh - size) / 2, sw, sh);
+          drawImageCover(ctx, img, x, y, size, size);
           ctx.restore();
         } catch { /* skip */ }
       }

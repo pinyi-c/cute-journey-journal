@@ -1,5 +1,6 @@
 import { Journey } from './journeyContext';
 import { getPhoto, blobToDataUrl } from './photoDb';
+import { cropImageToDataURL } from './imageUtils';
 
 function safeTitleForPDF(text: string): string {
   // Strip leading checkbox-style markers like "[x] " or "[ ] "
@@ -119,7 +120,8 @@ export async function exportPdf(journey: Journey) {
       const blob = await getPhoto(pid);
       if (blob) {
         try {
-          const dataUrl = await blobToDataUrl(blob);
+          const originalDataUrl = await blobToDataUrl(blob);
+          const dataUrl = await cropImageToDataURL(originalDataUrl, 55, 55);
           if (y > 200) {
             doc.addPage();
             y = 25;
