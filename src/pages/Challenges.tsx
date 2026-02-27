@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useJourney } from '@/lib/journeyContext';
 import { ChallengeItem } from '@/components/ChallengeItem';
 import { BottomNav } from '@/components/BottomNav';
@@ -11,7 +11,10 @@ export default function Challenges() {
   const [newTitle, setNewTitle] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   if (!journey) return <Navigate to="/" replace />;
 
@@ -31,6 +34,29 @@ export default function Challenges() {
     saveNow();
     setSaveStatus('Saved just now');
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const focus = params.get('focus');
+    if (focus && journey.challenges.some(c => c.id === focus)) {
+      setFocusedId(focus);
+      // Scroll after DOM paints
+      requestAnimationFrame(() => {
+        const el = itemRefs.current[focus];
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+      params.delete('focus');
+      navigate(
+        {
+          pathname: location.pathname,
+          search: params.toString() ? `?${params.toString()}` : '',
+        },
+        { replace: true },
+      );
+    }
+  }, [location.pathname, location.search, journey.challenges, navigate]);
 
   return (
     <div className="min-h-screen pb-24 max-w-md mx-auto">
@@ -81,7 +107,17 @@ export default function Challenges() {
       {/* Challenge list */}
       <div className="px-4 space-y-3">
         {journey.challenges.map(c => (
-          <ChallengeItem key={c.id} challenge={c} />
+          <div
+            key={c.id}
+            ref={el => {
+              itemRefs.current[c.id] = el;
+            }}
+          >
+            <ChallengeItem
+              challenge={c}
+              autoExpand={focusedId === c.id}
+            />
+          </div>
         ))}
       </div>
 

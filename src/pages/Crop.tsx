@@ -77,7 +77,11 @@ export default function CropPage() {
   }, [file, challengeId, journey, navigate]);
 
   const handleCancel = () => {
-    navigate(-1);
+    if (challengeId) {
+      navigate(`/challenges?focus=${encodeURIComponent(challengeId)}`, { replace: true });
+    } else {
+      navigate('/challenges', { replace: true });
+    }
   };
 
   const handleUsePhoto = async () => {
@@ -88,14 +92,14 @@ export default function CropPage() {
       return;
     }
     if (challenge.photoIds.length >= 3) {
-      navigate(-1);
+      navigate(`/challenges?focus=${encodeURIComponent(challengeId)}`, { replace: true });
       return;
     }
     const blob = await getCroppedImageFromFile(file, croppedAreaPixels);
     const id = crypto.randomUUID();
     await savePhoto(id, blob);
     updateChallenge(challengeId, { photoIds: [...challenge.photoIds, id] });
-    navigate(-1);
+    navigate(`/challenges?focus=${encodeURIComponent(challengeId)}`, { replace: true });
   };
 
   if (!file || !challengeId) {

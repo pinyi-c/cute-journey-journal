@@ -1,10 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Challenge, useJourney } from '@/lib/journeyContext';
 import { PhotoUpload } from './PhotoUpload';
 import { ChevronDown, ChevronUp, Trash2, Check } from 'lucide-react';
 import { deletePhoto } from '@/lib/photoDb';
 
-export function ChallengeItem({ challenge }: { challenge: Challenge }) {
+interface Props {
+  challenge: Challenge;
+  autoExpand?: boolean;
+}
+
+export function ChallengeItem({ challenge, autoExpand }: Props) {
   const { updateChallenge, deleteChallenge } = useJourney();
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -26,6 +31,12 @@ export function ChallengeItem({ challenge }: { challenge: Challenge }) {
     }
     deleteChallenge(challenge.id);
   };
+
+  useEffect(() => {
+    if (autoExpand) {
+      setExpanded(true);
+    }
+  }, [autoExpand]);
 
   return (
     <div

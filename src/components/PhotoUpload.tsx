@@ -36,7 +36,7 @@ export function PhotoUpload({ photoIds, onPhotoIdsChange, challengeId }: Props) 
     if (!file) return;
     if (photoIds.length >= 3) return;
     setPendingCrop({ file, challengeId });
-    navigate('/crop');
+    navigate(`/crop?cid=${encodeURIComponent(challengeId)}`);
     if (inputRef.current) inputRef.current.value = '';
   };
 
