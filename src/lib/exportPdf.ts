@@ -1,31 +1,51 @@
 import { Journey } from './journeyContext';
 import { getPhoto, blobToDataUrl } from './photoDb';
 
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
+function arrayBufferToBinaryString(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = '';
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
-  return btoa(binary);
+  return binary;
 }
 
 export async function exportPdf(journey: Journey) {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
-  // Try to load Noto Sans TC for Chinese support
-  try {
-    const resp = await fetch('/fonts/NotoSansTC-Regular.ttf');
-    if (resp.ok) {
+  // Load a CJK font so English / Chinese / Japanese render correctly.
+  // We try Noto Sans CJK JP first, then fall back to Noto Sans TC.
+  let fontLoaded = false;
+  const tryLoadFont = async (url: string, fileName: string, fontName: string) => {
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) {
+        console.error(`Failed to load PDF font "${url}": HTTP ${resp.status}`);
+        return;
+      }
       const buffer = await resp.arrayBuffer();
-      const base64 = arrayBufferToBase64(buffer);
-      doc.addFileToVFS('NotoSansTC-Regular.ttf', base64);
-      doc.addFont('NotoSansTC-Regular.ttf', 'NotoSansTC', 'normal');
-      doc.setFont('NotoSansTC');
+      const binary = arrayBufferToBinaryString(buffer);
+      doc.addFileToVFS(fileName, binary);
+      doc.addFont(fileName, fontName, 'normal');
+      doc.setFont(fontName);
+      fontLoaded = true;
+    } catch (e) {
+      console.error(`Error while fetching PDF font "${url}":`, e);
     }
-  } catch {
-    // fallback to helvetica
+  };
+
+  // These files should be placed under /public/fonts/
+  await tryLoadFont('/fonts/NotoSansCJKjp-Regular.otf', 'NotoSansCJKjp-Regular.otf', 'NotoSansCJKjp');
+
+  if (!fontLoaded) {
+    await tryLoadFont('/fonts/NotoSansTC-Regular.ttf', 'NotoSansTC-Regular.ttf', 'NotoSansTC');
+  }
+
+  if (!fontLoaded) {
+    console.error(
+      'PDF export: no CJK font could be loaded from /public/fonts/. Text may appear garbled.'
+    );
   }
 
   const pageWidth = doc.internal.pageSize.getWidth();
