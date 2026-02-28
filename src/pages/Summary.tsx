@@ -6,11 +6,12 @@ import { exportPdf } from '@/lib/exportPdf';
 import { getPhotoUrl } from '@/lib/photoDb';
 import { PhotoPreviewModal } from '@/components/PhotoPreviewModal';
 import mascotUrl from '@/assets/mascot.svg';
-import { FileDown } from 'lucide-react';
+import { FileDown, Loader2 } from 'lucide-react';
 
 export default function Summary() {
   const { journey } = useJourney();
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [pdfProgressMessage, setPdfProgressMessage] = useState('');
   const [collageUrls, setCollageUrls] = useState<string[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -38,12 +39,15 @@ export default function Summary() {
 
   const handlePdfExport = async () => {
     setExportingPdf(true);
+    setPdfProgressMessage('Preparing…');
     try {
-      await exportPdf(journey);
+      await exportPdf(journey, (message) => setPdfProgressMessage(message));
     } catch (e) {
       console.error('PDF export failed:', e);
+    } finally {
+      setExportingPdf(false);
+      setPdfProgressMessage('');
     }
-    setExportingPdf(false);
   };
 
   return (
@@ -78,7 +82,7 @@ export default function Summary() {
         <h2 className="font-bold">Export Your Journey</h2>
         <button onClick={handlePdfExport} disabled={exportingPdf || completed === 0}
           className="w-full bg-primary text-primary-foreground rounded-2xl py-3.5 font-semibold flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm active:scale-[0.98] transition-transform">
-          <FileDown size={18} /> {exportingPdf ? 'Generating PDF…' : 'Export PDF Booklet'}
+          <FileDown size={18} /> Export PDF Booklet
         </button>
         {completed === 0 && (
           <p className="text-xs text-muted-foreground text-center">
@@ -91,6 +95,24 @@ export default function Summary() {
       </div>
 
       <PhotoPreviewModal url={previewUrl} onClose={() => setPreviewUrl(null)} />
+
+      {exportingPdf && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+          aria-modal="true"
+          aria-busy="true"
+          aria-label="Exporting PDF"
+        >
+          <div className="mx-4 flex max-w-sm flex-col items-center gap-4 rounded-2xl border border-border bg-card p-8 shadow-lg">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-sm font-medium text-foreground">Exporting PDF</p>
+            <p className="min-h-[1.25rem] text-center text-xs text-muted-foreground">
+              {pdfProgressMessage || 'Preparing…'}
+            </p>
+          </div>
+        </div>
+      )}
+
       <BottomNav />
     </div>
   );

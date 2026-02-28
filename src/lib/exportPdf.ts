@@ -200,7 +200,17 @@ async function createRoundedImageDataUrl(
   return canvas.toDataURL('image/png');
 }
 
-export async function exportPdf(journey: Journey) {
+export type PdfExportProgressCallback = (message: string) => void;
+
+export async function exportPdf(
+  journey: Journey,
+  onProgress?: PdfExportProgressCallback,
+) {
+  const report = (msg: string) => {
+    onProgress?.(msg);
+  };
+
+  report('Preparing fonts…');
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
@@ -293,11 +303,23 @@ export async function exportPdf(journey: Journey) {
   const marginTop = 25;
   const marginBottom = 20;
 
-  for (const group of groups) {
+  // Total photos we will load (first 3 per challenge)
+  const totalPhotos = groups.reduce(
+    (sum, g) =>
+      sum + g.challenges.reduce((s, c) => s + Math.min(c.photoIds.length, 3), 0),
+    0,
+  );
+  let photosLoaded = 0;
+
+  for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
+    const group = groups[groupIndex];
     let isFirstPageForGroup = true;
 
     if (group.challenges.length === 0) continue;
 
+    report(
+      `Building pages… (${group.label}${groups.length > 1 ? ` ${groupIndex + 1}/${groups.length}` : ''})`,
+    );
     doc.addPage();
     if (activeFontName) {
       doc.setFont(activeFontName, 'normal');
@@ -405,6 +427,9 @@ export async function exportPdf(journey: Journey) {
 
         let x = margin;
         for (const pid of photoIds) {
+          if (totalPhotos > 0) {
+            report(`Loading photos… (${photosLoaded + 1}/${totalPhotos})`);
+          }
           const blob = await getPhoto(pid);
           if (blob) {
             try {
@@ -416,6 +441,7 @@ export async function exportPdf(journey: Journey) {
               console.error('PDF photo render failed', pid, e);
             }
           }
+          photosLoaded += 1;
           x += photoSize + gap;
         }
 
@@ -427,6 +453,7 @@ export async function exportPdf(journey: Journey) {
     }
   }
 
+  report('Finalizing…');
   const safeName = sanitizeForPDF(journey.title || 'journey') || 'journey';
   doc.save(`${safeName}.pdf`);
 }
