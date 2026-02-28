@@ -423,6 +423,7 @@ export async function exportPdf(
         doc.setFontSize(11);
         if (activeFontName) doc.setFont(activeFontName, 'normal');
         doc.setTextColor(90);
+        const cap = sanitizeForPDF(challenge.caption || '');
         const quoted = `“${cap}”`;
         const lines = doc.splitTextToSize(quoted, contentWidth) as string[];
         currentY += 2;
