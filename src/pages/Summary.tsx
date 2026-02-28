@@ -1,24 +1,23 @@
-import { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useJourney } from '@/lib/journeyContext';
 import { BottomNav } from '@/components/BottomNav';
 import { exportPdf } from '@/lib/exportPdf';
-import { getPhotoUrl } from '@/lib/photoDb';
+import { getPhotoUrl, deletePhoto } from '@/lib/photoDb';
 import { PhotoPreviewModal } from '@/components/PhotoPreviewModal';
 import mascotUrl from '@/assets/mascot.svg';
-import { FileDown, Loader2 } from 'lucide-react';
+import { FileDown, Loader2, Plus, X } from 'lucide-react';
+import { setPendingCrop } from '@/lib/cropStore';
 
 export default function Summary() {
+  const navigate = useNavigate();
   const { journey, updateJourneyDetails } = useJourney();
   const [exportingPdf, setExportingPdf] = useState(false);
   const [pdfProgressMessage, setPdfProgressMessage] = useState('');
   const [collageUrls, setCollageUrls] = useState<string[]>([]);
-  const [coverThumbUrls, setCoverThumbUrls] = useState<Record<string, string>>({});
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
-  const completedChallenges = journey?.challenges.filter(c => c.completed) ?? [];
-  const coverPhotoIds = completedChallenges.flatMap(c => c.photoIds);
-  const selectedCoverId = journey?.coverPhotoId ?? null;
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!journey) return;
@@ -37,19 +36,26 @@ export default function Summary() {
   }, [journey]);
 
   useEffect(() => {
-    if (coverPhotoIds.length === 0) return;
+    const id = journey?.coverPhotoId;
+    if (!id) {
+      setCoverPreviewUrl(null);
+      return;
+    }
     let cancelled = false;
+    let objectUrl: string | null = null;
     const load = async () => {
-      const record: Record<string, string> = {};
-      for (const id of coverPhotoIds) {
-        const url = await getPhotoUrl(id);
-        if (url && !cancelled) record[id] = url;
+      const url = await getPhotoUrl(id);
+      if (url && !cancelled) {
+        objectUrl = url;
+        setCoverPreviewUrl(url);
       }
-      if (!cancelled) setCoverThumbUrls(record);
     };
     load();
-    return () => { cancelled = true; };
-  }, [coverPhotoIds.join(',')]);
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [journey?.coverPhotoId]);
 
   if (!journey) return <Navigate to="/" replace />;
 
@@ -104,44 +110,52 @@ export default function Summary() {
       )}
 
       <div className="mx-4 mb-6">
-        <h2 className="font-bold mb-3">Choose cover photo</h2>
+        <h2 className="font-bold mb-3">PDF Cover Photo</h2>
         <p className="text-xs text-muted-foreground mb-2">
-          Optional: pick a photo for the PDF booklet cover. Default is text-only.
+          Optional: upload a dedicated cover photo for the booklet. It will be cropped to portrait (4:5).
         </p>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => updateJourneyDetails({ coverPhotoId: null })}
-            className={`flex flex-col items-center justify-center w-20 h-20 rounded-xl border-2 transition-all ${
-              selectedCoverId === null || selectedCoverId === undefined
-                ? 'border-primary bg-primary/10 ring-2 ring-primary/30'
-                : 'border-border bg-muted/30 hover:border-muted-foreground/40'
-            }`}
-          >
-            <span className="text-xs font-medium text-center px-1">No cover</span>
-          </button>
-          {coverPhotoIds.map((id) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => updateJourneyDetails({ coverPhotoId: id })}
-              className={`relative w-20 h-20 rounded-xl border-2 overflow-hidden transition-all flex-shrink-0 ${
-                selectedCoverId === id
-                  ? 'border-primary ring-2 ring-primary/30'
-                  : 'border-border hover:border-muted-foreground/40'
-              }`}
-            >
-              {coverThumbUrls[id] ? (
+        <div className="flex flex-wrap items-start gap-3">
+          {journey.coverPhotoId && coverPreviewUrl ? (
+            <>
+              <div className="relative w-24 aspect-[4/5] rounded-xl border border-border overflow-hidden bg-muted/30 flex-shrink-0">
                 <img
-                  src={coverThumbUrls[id]}
-                  alt="Cover option"
+                  src={coverPreviewUrl}
+                  alt="Cover preview"
                   className="w-full h-full object-cover"
                 />
-              ) : (
-                <span className="text-xs text-muted-foreground">…</span>
-              )}
-            </button>
-          ))}
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    deletePhoto(journey.coverPhotoId!);
+                    updateJourneyDetails({ coverPhotoId: null });
+                  }}
+                  className="text-sm text-muted-foreground hover:text-destructive flex items-center gap-1"
+                >
+                  <X size={14} /> Remove
+                </button>
+              </div>
+            </>
+          ) : (
+            <label className="flex flex-col items-center justify-center w-24 rounded-xl border-2 border-dashed border-primary/40 flex-shrink-0 cursor-pointer hover:border-primary/70 transition-colors aspect-[4/5]">
+              <Plus size={28} className="text-primary/50" />
+              <span className="text-xs font-medium text-muted-foreground mt-1">Upload</span>
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setPendingCrop({ file, coverPhoto: true });
+                  navigate('/crop');
+                  e.target.value = '';
+                }}
+              />
+            </label>
+          )}
         </div>
       </div>
 

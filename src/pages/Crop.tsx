@@ -4,13 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { consumePendingCrop } from '@/lib/cropStore';
 import { useJourney } from '@/lib/journeyContext';
 import { savePhoto } from '@/lib/photoDb';
-import { MAX_PHOTOS_PER_CHALLENGE } from '@/lib/constants';
+import { MAX_PHOTOS_PER_CHALLENGE, COVER_PHOTO_ID } from '@/lib/constants';
 
 async function getCroppedImageFromFile(
   file: File,
   croppedAreaPixels: Area,
-  size = 1600,
+  outWidth: number,
+  outHeight?: number,
 ): Promise<Blob> {
+  const h = outHeight ?? outWidth;
   const imageUrl = URL.createObjectURL(file);
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -21,24 +23,14 @@ async function getCroppedImageFromFile(
     });
 
     const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
+    canvas.width = outWidth;
+    canvas.height = h;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Could not get canvas context');
 
     const { x, y, width, height } = croppedAreaPixels;
 
-    ctx.drawImage(
-      img,
-      x,
-      y,
-      width,
-      height,
-      0,
-      0,
-      size,
-      size,
-    );
+    ctx.drawImage(img, x, y, width, height, 0, 0, outWidth, h);
 
     return await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
@@ -55,12 +47,15 @@ async function getCroppedImageFromFile(
   }
 }
 
+const COVER_ASPECT = 4 / 5;
+
 export default function CropPage() {
   const navigate = useNavigate();
-  const { journey, updateChallenge } = useJourney();
+  const { journey, updateChallenge, updateJourneyDetails } = useJourney();
   const initial = useMemo(() => consumePendingCrop(), []);
   const [file] = useState<File | null>(initial?.file ?? null);
-  const challengeId = initial?.challengeId ?? null;
+  const challengeId = initial && 'challengeId' in initial ? initial.challengeId : null;
+  const isCoverMode = Boolean(initial && 'coverPhoto' in initial && initial.coverPhoto);
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -68,17 +63,19 @@ export default function CropPage() {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
   useEffect(() => {
-    if (!file || !challengeId || !journey) {
-      navigate('/challenges', { replace: true });
+    if (!file || !journey) {
+      navigate(isCoverMode ? '/summary' : '/challenges', { replace: true });
       return;
     }
     const url = URL.createObjectURL(file);
     setImageUrl(url);
     return () => URL.revokeObjectURL(url);
-  }, [file, challengeId, journey, navigate]);
+  }, [file, journey, navigate, isCoverMode]);
 
   const handleCancel = () => {
-    if (challengeId) {
+    if (isCoverMode) {
+      navigate('/summary', { replace: true });
+    } else if (challengeId) {
       navigate(`/challenges?focus=${encodeURIComponent(challengeId)}`, { replace: true });
     } else {
       navigate('/challenges', { replace: true });
@@ -86,7 +83,20 @@ export default function CropPage() {
   };
 
   const handleUsePhoto = async () => {
-    if (!file || !croppedAreaPixels || !journey || !challengeId) return;
+    if (!file || !croppedAreaPixels || !journey) return;
+    if (isCoverMode) {
+      const blob = await getCroppedImageFromFile(
+        file,
+        croppedAreaPixels,
+        1280,
+        1600,
+      );
+      await savePhoto(COVER_PHOTO_ID, blob);
+      updateJourneyDetails({ coverPhotoId: COVER_PHOTO_ID });
+      navigate('/summary', { replace: true });
+      return;
+    }
+    if (!challengeId) return;
     const challenge = journey.challenges.find(c => c.id === challengeId);
     if (!challenge) {
       navigate('/challenges', { replace: true });
@@ -96,16 +106,18 @@ export default function CropPage() {
       navigate(`/challenges?focus=${encodeURIComponent(challengeId)}`, { replace: true });
       return;
     }
-    const blob = await getCroppedImageFromFile(file, croppedAreaPixels);
+    const blob = await getCroppedImageFromFile(file, croppedAreaPixels, 1600);
     const id = crypto.randomUUID();
     await savePhoto(id, blob);
     updateChallenge(challengeId, { photoIds: [...challenge.photoIds, id] });
     navigate(`/challenges?focus=${encodeURIComponent(challengeId)}`, { replace: true });
   };
 
-  if (!file || !challengeId) {
+  if (!file || (!challengeId && !isCoverMode)) {
     return null;
   }
+
+  const aspect = isCoverMode ? COVER_ASPECT : 1;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -117,18 +129,23 @@ export default function CropPage() {
         >
           Back
         </button>
-        <p className="text-xs text-muted-foreground">Crop your photo</p>
+        <p className="text-xs text-muted-foreground">
+          {isCoverMode ? 'Crop cover photo' : 'Crop your photo'}
+        </p>
         <span className="w-10" />
       </header>
 
       <main className="flex-1 flex flex-col max-w-md mx-auto w-full">
-        <div className="relative w-full aspect-square bg-black rounded-xl overflow-hidden">
+        <div
+          className="relative w-full bg-black rounded-xl overflow-hidden"
+          style={{ aspectRatio: aspect }}
+        >
           {imageUrl && (
             <Cropper
               image={imageUrl}
               crop={crop}
               zoom={zoom}
-              aspect={1}
+              aspect={aspect}
               onCropChange={setCrop}
               onZoomChange={setZoom}
               onCropComplete={(_, areaPixels) => setCroppedAreaPixels(areaPixels)}

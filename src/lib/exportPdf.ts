@@ -287,15 +287,15 @@ export async function exportPdf(
   }
   y += 10;
 
-  // Optional cover photo (magazine-like frame: rounded corners, cover-crop)
+  // Optional cover photo (portrait 4:5, rounded corners, cover-crop, subtle shadow)
   if (coverPhotoId) {
     try {
       report('Preparing cover photo…');
       const blob = await getPhoto(coverPhotoId);
       if (blob) {
         const originalDataUrl = await blobToDataUrl(blob);
-        const coverW = 180;
-        const coverH = 100;
+        const coverW = 100;
+        const coverH = 125;
         const radius = 8;
         const coverDataUrl = await createRoundedImageDataUrl(
           originalDataUrl,
@@ -304,6 +304,8 @@ export async function exportPdf(
           radius,
         );
         const coverX = (pageWidth - coverW) / 2;
+        doc.setFillColor(200, 200, 200);
+        doc.rect(coverX + 2, y + 2, coverW, coverH, 'F');
         doc.addImage(coverDataUrl, 'PNG', coverX, y, coverW, coverH);
         y += coverH + 12;
       }

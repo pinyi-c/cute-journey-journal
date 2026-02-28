@@ -1,11 +1,13 @@
-type PendingCrop = {
-  file: File;
-  challengeId: string;
-} | null;
+export type PendingCrop =
+  | { file: File; challengeId: string }
+  | { file: File; coverPhoto: true }
+  | null;
 
 let pending: PendingCrop = null;
 
-export function setPendingCrop(data: { file: File; challengeId: string }) {
+export function setPendingCrop(
+  data: { file: File; challengeId: string } | { file: File; coverPhoto: true },
+) {
   pending = { ...data };
 }
 
