@@ -1,6 +1,10 @@
 import { Journey } from './journeyContext';
 import { getPhoto, blobToDataUrl } from './photoDb';
 import { cropImageToDataURL } from './imageUtils';
+import { GlobalWorkerOptions } from 'pdfjs-dist';
+
+// pdfjs worker must be set before any getDocument() call. Worker file is copied to public/ at postinstall.
+GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
 // We embed Noto Sans TC as a Unicode (Identity-H) font for zh/ja.
 const FONT_FILE_TC = 'NotoSansTC-Regular.ttf';

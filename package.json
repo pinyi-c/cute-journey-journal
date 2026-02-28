@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "copy-pdf-worker": "node scripts/copy-pdf-worker.cjs",
+    "postinstall": "node scripts/copy-pdf-worker.cjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
