@@ -1,17 +1,35 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
+import html2canvas from 'html2canvas';
 import { useJourney } from '@/lib/journeyContext';
+import type { Challenge } from '@/lib/journeyContext';
 import { BottomNav } from '@/components/BottomNav';
-import { getPhotoUrl } from '@/lib/photoDb';
+import { getPhotoUrl, getPhoto, blobToDataUrl } from '@/lib/photoDb';
 import { PhotoPreviewModal } from '@/components/PhotoPreviewModal';
+import { ChallengeCardCapture, CARD_CAPTURE_BG } from '@/components/ChallengeCardCapture';
+import { Download } from 'lucide-react';
 
 type Filter = 'all' | 'completed' | 'pending';
+
+function sanitizeFilename(s: string): string {
+  return s
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-zA-Z0-9_-]/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'card';
+}
 
 export default function Gallery() {
   const { journey } = useJourney();
   const [filter, setFilter] = useState<Filter>('all');
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [capturingCard, setCapturingCard] = useState<{
+    challenge: Challenge;
+    imageDataUrls: string[];
+  } | null>(null);
+  const captureContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!journey) return;
@@ -28,6 +46,47 @@ export default function Gallery() {
     load();
     return () => { cancelled = true; };
   }, [journey]);
+
+  useEffect(() => {
+    if (!capturingCard || !journey || !captureContainerRef.current) return;
+    const el = captureContainerRef.current;
+    const imgs = el.querySelectorAll('img');
+    const waitImages = Array.from(imgs).map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          if (img.complete) resolve();
+          else img.onload = () => resolve();
+        })
+    );
+    Promise.all(waitImages)
+      .then(() => html2canvas(el, { scale: 2, backgroundColor: CARD_CAPTURE_BG }))
+      .then((canvas) => {
+        const filename = `${sanitizeFilename(journey.title)}_${sanitizeFilename(capturingCard.challenge.title)}_card.png`;
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.rel = 'noopener';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 500);
+        }, 'image/png');
+      })
+      .finally(() => setCapturingCard(null));
+  }, [capturingCard, journey]);
+
+  const handleDownloadCard = async (c: Challenge) => {
+    const ids = c.photoIds.slice(0, 3);
+    const dataUrls: string[] = [];
+    for (const id of ids) {
+      const blob = await getPhoto(id);
+      if (blob) dataUrls.push(await blobToDataUrl(blob));
+    }
+    setCapturingCard({ challenge: c, imageDataUrls: dataUrls });
+  };
 
   if (!journey) return <Navigate to="/" replace />;
 
@@ -104,6 +163,16 @@ export default function Gallery() {
             {c.photoIds.length === 0 && (
               <p className="text-xs text-muted-foreground/60 italic">No photos yet</p>
             )}
+            <div className="mt-3 pt-3 border-t border-border">
+              <button
+                type="button"
+                onClick={() => handleDownloadCard(c)}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Download size={16} />
+                Download Card
+              </button>
+            </div>
           </div>
         ))}
         {filtered.length === 0 && (
@@ -113,6 +182,25 @@ export default function Gallery() {
         )}
       </div>
 
+      {capturingCard && (
+        <div
+          style={{
+            position: 'fixed',
+            left: -9999,
+            top: 0,
+            zIndex: -1,
+          }}
+        >
+          <ChallengeCardCapture
+            ref={captureContainerRef}
+            title={capturingCard.challenge.title}
+            date={capturingCard.challenge.date}
+            location={capturingCard.challenge.location}
+            caption={capturingCard.challenge.caption}
+            imageDataUrls={capturingCard.imageDataUrls}
+          />
+        </div>
+      )}
       <PhotoPreviewModal url={previewUrl} onClose={() => setPreviewUrl(null)} />
       <BottomNav />
     </div>
