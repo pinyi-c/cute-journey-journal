@@ -9,7 +9,7 @@ export interface ChallengeCardCaptureProps {
   date: string;
   location: string;
   caption: string;
-  /** Data URLs for up to 3 photos (avoids CORS in html2canvas). */
+  /** Data URLs for up to 10 photos (avoids CORS in html2canvas). */
   imageDataUrls: string[];
   /** Optional footer text. */
   footer?: string;
@@ -17,13 +17,26 @@ export interface ChallengeCardCaptureProps {
 
 const CARD_BG = '#FAF7F2';
 const CARD_WIDTH = 1080;
+const MAX_PHOTOS = 10;
+
+/** Columns for photo grid by count: 1=hero, 2=2col, 3-4=2x2, 5-6=3col, 7-9=3col, 10=5col. */
+function getGridColumns(n: number): number {
+  if (n <= 1) return 1;
+  if (n === 2) return 2;
+  if (n <= 4) return 2;
+  if (n <= 6) return 3;
+  if (n <= 9) return 3;
+  return 5;
+}
 
 export const ChallengeCardCapture = forwardRef<HTMLDivElement, ChallengeCardCaptureProps>(
   function ChallengeCardCapture(
     { title, date, location, caption, imageDataUrls, footer = '✨ My Cute Journey' },
     ref
   ) {
-  const photos = imageDataUrls.slice(0, 3);
+  const photos = imageDataUrls.slice(0, MAX_PHOTOS);
+  const cols = getGridColumns(photos.length);
+  const isHero = photos.length === 1;
 
   return (
     <div
@@ -77,7 +90,7 @@ export const ChallengeCardCapture = forwardRef<HTMLDivElement, ChallengeCardCapt
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${photos.length}, 1fr)`,
+            gridTemplateColumns: `repeat(${cols}, 1fr)`,
             gap: 16,
             marginBottom: 24,
           }}
@@ -89,7 +102,7 @@ export const ChallengeCardCapture = forwardRef<HTMLDivElement, ChallengeCardCapt
               alt=""
               style={{
                 width: '100%',
-                aspectRatio: '1',
+                aspectRatio: isHero ? '4/3' : '1',
                 objectFit: 'cover',
                 borderRadius: 12,
                 display: 'block',

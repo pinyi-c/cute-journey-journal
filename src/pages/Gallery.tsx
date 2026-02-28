@@ -79,7 +79,7 @@ export default function Gallery() {
   }, [capturingCard, journey]);
 
   const handleDownloadCard = async (c: Challenge) => {
-    const ids = c.photoIds.slice(0, 3);
+    const ids = c.photoIds.slice(0, 10);
     const dataUrls: string[] = [];
     for (const id of ids) {
       const blob = await getPhoto(id);
