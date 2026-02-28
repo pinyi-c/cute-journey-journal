@@ -205,6 +205,7 @@ export type PdfExportProgressCallback = (message: string) => void;
 export async function exportPdf(
   journey: Journey,
   onProgress?: PdfExportProgressCallback,
+  coverPhotoId?: string | null,
 ) {
   const report = (msg: string) => {
     onProgress?.(msg);
@@ -285,6 +286,31 @@ export async function exportPdf(
     y += 8;
   }
   y += 10;
+
+  // Optional cover photo (magazine-like frame: rounded corners, cover-crop)
+  if (coverPhotoId) {
+    try {
+      report('Preparing cover photo…');
+      const blob = await getPhoto(coverPhotoId);
+      if (blob) {
+        const originalDataUrl = await blobToDataUrl(blob);
+        const coverW = 180;
+        const coverH = 100;
+        const radius = 8;
+        const coverDataUrl = await createRoundedImageDataUrl(
+          originalDataUrl,
+          coverW,
+          coverH,
+          radius,
+        );
+        const coverX = (pageWidth - coverW) / 2;
+        doc.addImage(coverDataUrl, 'PNG', coverX, y, coverW, coverH);
+        y += coverH + 12;
+      }
+    } catch (e) {
+      console.error('PDF cover photo failed', coverPhotoId, e);
+    }
+  }
 
   // Tagline
   doc.setFontSize(10);

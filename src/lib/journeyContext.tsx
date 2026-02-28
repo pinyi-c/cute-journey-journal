@@ -19,6 +19,8 @@ export interface Journey {
   buddyName: string;
   theme: ThemeId;
   challenges: Challenge[];
+  /** Optional cover photo ID for PDF booklet (from completed challenges' photos). */
+  coverPhotoId?: string | null;
 }
 
 interface JourneyContextType {
@@ -87,10 +89,11 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
     }
   }, [journey]);
 
-  const createJourney = useCallback((data: Omit<Journey, 'challenges'>) => {
+  const createJourney = useCallback((data: Omit<Journey, 'challenges' | 'coverPhotoId'>) => {
     setJourney({
       ...data,
       challenges: DEFAULT_CHALLENGES.map(makeChallenge),
+      coverPhotoId: null,
     });
   }, []);
 

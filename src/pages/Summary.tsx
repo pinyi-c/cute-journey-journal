@@ -9,11 +9,16 @@ import mascotUrl from '@/assets/mascot.svg';
 import { FileDown, Loader2 } from 'lucide-react';
 
 export default function Summary() {
-  const { journey } = useJourney();
+  const { journey, updateJourneyDetails } = useJourney();
   const [exportingPdf, setExportingPdf] = useState(false);
   const [pdfProgressMessage, setPdfProgressMessage] = useState('');
   const [collageUrls, setCollageUrls] = useState<string[]>([]);
+  const [coverThumbUrls, setCoverThumbUrls] = useState<Record<string, string>>({});
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const completedChallenges = journey?.challenges.filter(c => c.completed) ?? [];
+  const coverPhotoIds = completedChallenges.flatMap(c => c.photoIds);
+  const selectedCoverId = journey?.coverPhotoId ?? null;
 
   useEffect(() => {
     if (!journey) return;
@@ -31,6 +36,21 @@ export default function Summary() {
     return () => { cancelled = true; };
   }, [journey]);
 
+  useEffect(() => {
+    if (coverPhotoIds.length === 0) return;
+    let cancelled = false;
+    const load = async () => {
+      const record: Record<string, string> = {};
+      for (const id of coverPhotoIds) {
+        const url = await getPhotoUrl(id);
+        if (url && !cancelled) record[id] = url;
+      }
+      if (!cancelled) setCoverThumbUrls(record);
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [coverPhotoIds.join(',')]);
+
   if (!journey) return <Navigate to="/" replace />;
 
   const completed = journey.challenges.filter(c => c.completed).length;
@@ -38,10 +58,15 @@ export default function Summary() {
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   const handlePdfExport = async () => {
+    if (!journey) return;
     setExportingPdf(true);
     setPdfProgressMessage('Preparing…');
     try {
-      await exportPdf(journey, (message) => setPdfProgressMessage(message));
+      await exportPdf(
+        journey,
+        (message) => setPdfProgressMessage(message),
+        journey.coverPhotoId ?? undefined,
+      );
     } catch (e) {
       console.error('PDF export failed:', e);
     } finally {
@@ -77,6 +102,48 @@ export default function Summary() {
           </div>
         </div>
       )}
+
+      <div className="mx-4 mb-6">
+        <h2 className="font-bold mb-3">Choose cover photo</h2>
+        <p className="text-xs text-muted-foreground mb-2">
+          Optional: pick a photo for the PDF booklet cover. Default is text-only.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => updateJourneyDetails({ coverPhotoId: null })}
+            className={`flex flex-col items-center justify-center w-20 h-20 rounded-xl border-2 transition-all ${
+              selectedCoverId === null || selectedCoverId === undefined
+                ? 'border-primary bg-primary/10 ring-2 ring-primary/30'
+                : 'border-border bg-muted/30 hover:border-muted-foreground/40'
+            }`}
+          >
+            <span className="text-xs font-medium text-center px-1">No cover</span>
+          </button>
+          {coverPhotoIds.map((id) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => updateJourneyDetails({ coverPhotoId: id })}
+              className={`relative w-20 h-20 rounded-xl border-2 overflow-hidden transition-all flex-shrink-0 ${
+                selectedCoverId === id
+                  ? 'border-primary ring-2 ring-primary/30'
+                  : 'border-border hover:border-muted-foreground/40'
+              }`}
+            >
+              {coverThumbUrls[id] ? (
+                <img
+                  src={coverThumbUrls[id]}
+                  alt="Cover option"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-xs text-muted-foreground">…</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="mx-4 space-y-3">
         <h2 className="font-bold">Export Your Journey</h2>
