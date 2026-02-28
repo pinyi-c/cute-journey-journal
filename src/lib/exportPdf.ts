@@ -6,6 +6,59 @@ import { cropImageToDataURL } from './imageUtils';
 const FONT_FILE_TC = 'NotoSansTC-Regular.ttf';
 const FONT_NAME_TC = 'NotoSansTC';
 
+// Logical page size (A5 landscape = half of A4 landscape). Print duplex, flip on short edge, then fold.
+const LOGICAL_W_MM = 148.5;
+const LOGICAL_H_MM = 210;
+const A4_W_MM = 297;
+const A4_H_MM = 210;
+
+/** Renders a single-page PDF (ArrayBuffer) to a PNG dataURL at given scale for crisp text. */
+async function renderPdfPageToImageDataUrl(
+  pdfArrayBuffer: ArrayBuffer,
+  scale: number = 2,
+): Promise<string> {
+  const pdfjsLib = await import('pdfjs-dist');
+  const loadingTask = pdfjsLib.getDocument({ data: pdfArrayBuffer });
+  const pdf = await loadingTask.promise;
+  const page = await pdf.getPage(1);
+  const viewport = page.getViewport({ scale });
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.floor(viewport.width);
+  canvas.height = Math.floor(viewport.height);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Failed to get canvas context');
+  const renderContext = {
+    canvasContext: ctx,
+    viewport,
+    enableWebGL: false,
+  };
+  await page.render(renderContext).promise;
+  return canvas.toDataURL('image/png');
+}
+
+/** Add font to a jsPDF instance (reusable for logical-page docs). */
+function addFontToDoc(doc: any, fontBase64: string | null): string | null {
+  if (!fontBase64) return null;
+  try {
+    doc.addFileToVFS(FONT_FILE_TC, fontBase64);
+    doc.addFont(FONT_FILE_TC, FONT_NAME_TC, 'normal', 'Identity-H');
+    doc.setFont(FONT_NAME_TC, 'normal');
+    return FONT_NAME_TC;
+  } catch {
+    return null;
+  }
+}
+
+/** Create a single logical page doc (A5 landscape 148.5×210mm). */
+async function createLogicalPageDoc(): Promise<any> {
+  const { jsPDF } = await import('jspdf');
+  return new jsPDF({
+    unit: 'mm',
+    format: [LOGICAL_W_MM, LOGICAL_H_MM],
+    hotfixes: ['px_scaling'],
+  });
+}
+
 function sanitizeForPDF(text: string) {
   return (text || '')
     .replace(/\u2022/g, '-') // bullet • -> -
@@ -208,116 +261,71 @@ export type PdfExportProgressCallback = (message: string) => void;
 export async function exportPdf(
   journey: Journey,
   onProgress?: PdfExportProgressCallback,
-  coverPhotoId?: string | null,
+  _coverPhotoId?: string | null,
 ) {
-  const report = (msg: string) => {
-    onProgress?.(msg);
-  };
+  const report = (msg: string) => onProgress?.(msg);
 
   report('Preparing fonts…');
-  const { jsPDF } = await import('jspdf');
-  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
-
-  const pageW = 297;
-  const pageH = 210;
-  const halfW = 148.5;
-  const margin = 10;
-  const contentWidth = halfW - 2 * margin;
-  const marginTop = 12;
-  const marginBottom = 12;
-
-  const getHalfContentLeft = (side: 'left' | 'right') =>
-    side === 'left' ? margin : halfW + margin;
-  const withHalf = (side: 'left' | 'right', fn: (contentLeft: number) => void) =>
-    fn(getHalfContentLeft(side));
-
-  // Load a CJK font so English / Chinese / Japanese render correctly.
-  // We embed NotoSansTC-Regular.ttf as an Identity-H Unicode font.
-  let fontLoaded = false;
-  let activeFontName: string | null = null;
-  const tryLoadFont = async (url: string, fileName: string, fontName: string) => {
-    try {
-      const resp = await fetch(url);
-      if (!resp.ok) {
-        console.error(`Failed to load PDF font "${url}": HTTP ${resp.status}`);
-        return;
-      }
-      const buffer = await resp.arrayBuffer();
-      const base64 = arrayBufferToBase64(buffer);
-      doc.addFileToVFS(fileName, base64);
-      // Register TTF with Identity-H so CJK text uses Unicode, not WinAnsi.
-      doc.addFont(fileName, fontName, 'normal', 'Identity-H');
-      doc.setFont(fontName, 'normal');
-      fontLoaded = true;
-      activeFontName = fontName;
-    } catch (e) {
-      console.error(`Error while fetching PDF font "${url}":`, e);
-    }
-  };
-
-  // These files should be placed under /public/fonts/
-  await tryLoadFont('/fonts/NotoSansTC-Regular.ttf', FONT_FILE_TC, FONT_NAME_TC);
-
-  if (!fontLoaded || !activeFontName) {
+  let fontBase64: string | null = null;
+  try {
+    const resp = await fetch('/fonts/NotoSansTC-Regular.ttf');
+    if (resp.ok) fontBase64 = arrayBufferToBase64(await resp.arrayBuffer());
+  } catch (e) {
+    console.error('PDF font fetch failed:', e);
+  }
+  if (!fontBase64) {
     console.error(
-      'PDF export: failed to load NotoSansTC-Regular.ttf from /public/fonts. ' +
-      'Place the TTF at public/fonts/NotoSansTC-Regular.ttf so CJK text can render.'
+      'PDF export: place NotoSansTC-Regular.ttf at public/fonts/NotoSansTC-Regular.ttf for CJK.'
     );
   }
 
-  doc.setFillColor(250, 247, 242);
-  doc.rect(0, 0, pageW, pageH, 'F');
-  if (activeFontName) doc.setFont(activeFontName, 'normal');
+  const margin = 10;
+  const contentWidth = LOGICAL_W_MM - 2 * margin;
+  const marginTop = 12;
+  const marginBottom = 12;
+  const PHOTO_SIZE = 36;
+  const PHOTO_GAP = 4;
 
-  withHalf('left', (contentLeft) => {
-    const centerX = contentLeft + contentWidth / 2;
-    let y = 40;
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(safeTitleForPDF(journey.title), centerX, y, { align: 'center' });
-    y += 8;
-    doc.setFontSize(9);
-    doc.text(
-      `${journey.startDate}${journey.endDate ? ' – ' + journey.endDate : ''}`,
-      centerX,
-      y,
-      { align: 'center' },
-    );
-  });
+  const logicalPageBuffers: ArrayBuffer[] = [];
 
-  withHalf('right', (contentLeft) => {
-    const centerX = contentLeft + contentWidth / 2;
-    let y = 50;
-    doc.setTextColor(40);
-    doc.setFontSize(24);
-    doc.text(safeTitleForPDF(journey.title), centerX, y, { align: 'center' });
+  // Front cover (logical page 1)
+  const frontDoc = await createLogicalPageDoc();
+  addFontToDoc(frontDoc, fontBase64);
+  frontDoc.setFillColor(250, 247, 242);
+  frontDoc.rect(0, 0, LOGICAL_W_MM, LOGICAL_H_MM, 'F');
+  frontDoc.setFont(FONT_NAME_TC, 'normal');
+  const centerX = LOGICAL_W_MM / 2;
+  let y = 50;
+  frontDoc.setTextColor(40);
+  frontDoc.setFontSize(24);
+  frontDoc.text(safeTitleForPDF(journey.title), centerX, y, { align: 'center' });
+  y += 10;
+  frontDoc.setFontSize(12);
+  frontDoc.setTextColor(100);
+  frontDoc.text(
+    `${journey.startDate}${journey.endDate ? ' – ' + journey.endDate : ''}`,
+    centerX,
+    y,
+    { align: 'center' },
+  );
+  y += 12;
+  if (journey.buddyName) {
+    frontDoc.setFontSize(10);
+    frontDoc.text(`with ${journey.buddyName}`, centerX, y, { align: 'center' });
     y += 10;
-    doc.setFontSize(12);
-    doc.setTextColor(100);
-    doc.text(
-      `${journey.startDate}${journey.endDate ? ' – ' + journey.endDate : ''}`,
-      centerX,
-      y,
-      { align: 'center' },
-    );
-    y += 12;
-    if (journey.buddyName) {
-      doc.setFontSize(10);
-      doc.text(`with ${journey.buddyName}`, centerX, y, { align: 'center' });
-      y += 10;
-    }
-    y += 8;
-    doc.setFontSize(10);
-    doc.setTextColor(120);
-    doc.text(
-      'Three days in Taipei, forever in the camera roll.',
-      centerX,
-      y,
-      { align: 'center' },
-    );
-  });
+  }
+  y += 8;
+  frontDoc.setFontSize(10);
+  frontDoc.setTextColor(120);
+  frontDoc.text(
+    'Three days in Taipei, forever in the camera roll.',
+    centerX,
+    y,
+    { align: 'center' },
+  );
+  logicalPageBuffers.push(frontDoc.output('arraybuffer') as ArrayBuffer);
 
-  // Challenge pages (only export completed challenges, grouped diary-style by date)
+  // Content pages (logical 2..N) — only export completed challenges, grouped by date
   const completedChallenges = journey.challenges.filter(c => c.completed);
   const groups = groupByDate(completedChallenges, journey);
   const totalPhotos = groups.reduce(
@@ -327,27 +335,27 @@ export async function exportPdf(
   );
   let photosLoaded = 0;
 
-  const PHOTO_SIZE = 36;
-  const PHOTO_GAP = 4;
-
-  type Half = 'left' | 'right';
-  let currentSide: Half = 'right';
+  let currentDoc: any = null;
   let currentY = marginTop;
+  let activeFontName: string | null = null;
 
-  const startNewHalf = () => {
-    currentSide = currentSide === 'right' ? 'left' : 'right';
+  const finishLogicalPage = () => {
+    if (currentDoc) {
+      logicalPageBuffers.push(currentDoc.output('arraybuffer') as ArrayBuffer);
+      currentDoc = null;
+    }
+  };
+
+  const startNewLogicalPage = async () => {
+    finishLogicalPage();
+    currentDoc = await createLogicalPageDoc();
+    activeFontName = addFontToDoc(currentDoc, fontBase64);
+    currentDoc.setFillColor(250, 247, 242);
+    currentDoc.rect(0, 0, LOGICAL_W_MM, LOGICAL_H_MM, 'F');
     currentY = marginTop;
   };
 
-  const addContentSpread = () => {
-    doc.addPage('a4', 'landscape');
-    doc.setFillColor(250, 247, 242);
-    doc.rect(0, 0, pageW, pageH, 'F');
-    currentSide = 'right';
-    currentY = marginTop;
-  };
-
-  if (groups.length > 0) addContentSpread();
+  if (groups.length > 0) await startNewLogicalPage();
 
   for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
     const group = groups[groupIndex];
@@ -360,107 +368,94 @@ export async function exportPdf(
     let needDateHeader = true;
     const dateHeaderHeight = 14;
     for (const challenge of group.challenges) {
+      if (!currentDoc) await startNewLogicalPage();
+      const doc = currentDoc;
       const blockHeight = estimateBlockHeight(doc, challenge, contentWidth, margin);
+      const contentLeft = margin;
 
       if (needDateHeader) {
-        if (ensureSpace(dateHeaderHeight + blockHeight, marginBottom, currentY, pageH)) {
-          if (currentSide === 'right') {
-            startNewHalf();
-          } else {
-            addContentSpread();
-          }
-          if (currentSide === 'right') needDateHeader = true;
+        if (
+          ensureSpace(dateHeaderHeight + blockHeight, marginBottom, currentY, LOGICAL_H_MM)
+        ) {
+          await startNewLogicalPage();
+          needDateHeader = true;
         }
-        if (needDateHeader) {
-          const contentLeft = getHalfContentLeft(currentSide);
-          if (activeFontName) doc.setFont(activeFontName, 'normal');
-          doc.setFontSize(11);
-          doc.setTextColor(80);
-          doc.text(group.label, contentLeft, currentY);
+        if (needDateHeader && currentDoc) {
+          if (activeFontName) currentDoc.setFont(activeFontName, 'normal');
+          currentDoc.setFontSize(11);
+          currentDoc.setTextColor(80);
+          currentDoc.text(group.label, contentLeft, currentY);
           currentY += 4;
-          doc.setDrawColor(210);
-          doc.setLineWidth(0.2);
-          doc.line(contentLeft, currentY, contentLeft + contentWidth, currentY);
+          currentDoc.setDrawColor(210);
+          currentDoc.setLineWidth(0.2);
+          currentDoc.line(contentLeft, currentY, contentLeft + contentWidth, currentY);
           currentY += 6;
           needDateHeader = false;
         }
       } else {
-        if (ensureSpace(blockHeight, marginBottom, currentY, pageH)) {
-          if (currentSide === 'right') {
-            startNewHalf();
-          } else {
-            addContentSpread();
-            if (activeFontName) doc.setFont(activeFontName, 'normal');
-            doc.setFontSize(9);
-            doc.setTextColor(100);
-            doc.text(group.label, getHalfContentLeft(currentSide), currentY);
-            currentY += 6;
-          }
+        if (ensureSpace(blockHeight, marginBottom, currentY, LOGICAL_H_MM)) {
+          await startNewLogicalPage();
+          if (activeFontName) currentDoc?.setFont(activeFontName, 'normal');
+          currentDoc?.setFontSize(9);
+          currentDoc?.setTextColor(100);
+          currentDoc?.text(group.label, margin, currentY);
+          currentY += 6;
         }
       }
 
-      const contentLeft = getHalfContentLeft(currentSide);
-
-      doc.setFontSize(13);
-      if (activeFontName) doc.setFont(activeFontName, 'normal');
-      doc.setTextColor(40);
-      doc.text(safeTitleForPDF(challenge.title), contentLeft, currentY);
+      if (!currentDoc) continue;
+      currentDoc.setFontSize(13);
+      if (activeFontName) currentDoc.setFont(activeFontName, 'normal');
+      currentDoc.setTextColor(40);
+      currentDoc.text(safeTitleForPDF(challenge.title), contentLeft, currentY);
       currentY += 6;
 
-      doc.setFontSize(8);
-      doc.setTextColor(120);
+      currentDoc.setFontSize(8);
+      currentDoc.setTextColor(120);
       const metaParts: string[] = [];
       if (challenge.date) metaParts.push(challenge.date);
       if (challenge.location) metaParts.push(challenge.location);
       if (metaParts.length > 0) {
-        doc.text(metaParts.join(' • '), contentLeft, currentY);
+        currentDoc.text(metaParts.join(' • '), contentLeft, currentY);
         currentY += 6;
       } else {
         currentY += 2;
       }
 
       if (challenge.caption) {
-        doc.setFontSize(11);
-        if (activeFontName) doc.setFont(activeFontName, 'normal');
-        doc.setTextColor(90);
+        currentDoc.setFontSize(11);
+        if (activeFontName) currentDoc.setFont(activeFontName, 'normal');
+        currentDoc.setTextColor(90);
         const cap = sanitizeForPDF(challenge.caption || '');
         const quoted = `“${cap}”`;
-        const lines = doc.splitTextToSize(quoted, contentWidth) as string[];
+        const lines = currentDoc.splitTextToSize(quoted, contentWidth) as string[];
         currentY += 2;
-        doc.text(lines, contentLeft, currentY);
+        currentDoc.text(lines, contentLeft, currentY);
         currentY += lines.length * 6;
       }
 
       const photoIds = challenge.photoIds.slice(0, 10);
-      if (photoIds.length > 0) {
-        doc.setDrawColor(210);
-        doc.setLineWidth(0.2);
-        doc.line(contentLeft, currentY, contentLeft + contentWidth, currentY);
+      if (photoIds.length > 0 && currentDoc) {
+        currentDoc.setDrawColor(210);
+        currentDoc.setLineWidth(0.2);
+        currentDoc.line(contentLeft, currentY, contentLeft + contentWidth, currentY);
         currentY += 4;
 
         let blockStartY = currentY;
         let photoStartInBlock = 0;
-        let halfContentLeft = contentLeft;
+        const halfContentLeft = contentLeft;
 
         for (let i = 0; i < photoIds.length; i++) {
           const row = Math.floor((i - photoStartInBlock) / 2);
-          const col = (i - photoStartInBlock) % 2;
-          const placeX = halfContentLeft + col * (PHOTO_SIZE + PHOTO_GAP);
           let placeY = blockStartY + row * (PHOTO_SIZE + PHOTO_GAP);
 
-          if (placeY + PHOTO_SIZE > pageH - marginBottom) {
-            if (currentSide === 'right') {
-              startNewHalf();
-              halfContentLeft = getHalfContentLeft(currentSide);
-            } else {
-              addContentSpread();
-              halfContentLeft = getHalfContentLeft(currentSide);
-              if (activeFontName) doc.setFont(activeFontName, 'normal');
-              doc.setFontSize(9);
-              doc.setTextColor(100);
-              doc.text(group.label, halfContentLeft, currentY);
-              currentY += 6;
-            }
+          if (placeY + PHOTO_SIZE > LOGICAL_H_MM - marginBottom) {
+            await startNewLogicalPage();
+            if (activeFontName) currentDoc?.setFont(activeFontName, 'normal');
+            currentDoc?.setFontSize(9);
+            currentDoc?.setTextColor(100);
+            currentDoc?.text(group.label, margin, currentY);
+            currentY += 6;
             blockStartY = currentY;
             photoStartInBlock = i;
             placeY = blockStartY;
@@ -469,14 +464,14 @@ export async function exportPdf(
           const pid = photoIds[i];
           if (totalPhotos > 0) report(`Loading photos… (${photosLoaded + 1}/${totalPhotos})`);
           const blob = await getPhoto(pid);
-          if (blob) {
+          if (blob && currentDoc) {
             try {
               const originalDataUrl = await blobToDataUrl(blob);
               const croppedDataUrl = await getCachedCroppedSquareForPdf(pid, originalDataUrl);
               const format = croppedDataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
               const px = halfContentLeft + (i - photoStartInBlock) % 2 * (PHOTO_SIZE + PHOTO_GAP);
               const py = blockStartY + Math.floor((i - photoStartInBlock) / 2) * (PHOTO_SIZE + PHOTO_GAP);
-              doc.addImage(croppedDataUrl, format, px, py, PHOTO_SIZE, PHOTO_SIZE);
+              currentDoc.addImage(croppedDataUrl, format, px, py, PHOTO_SIZE, PHOTO_SIZE);
             } catch (e) {
               console.error('PDF photo render failed', pid, e);
             }
@@ -492,7 +487,89 @@ export async function exportPdf(
     }
   }
 
+  finishLogicalPage();
+
+  const contentPageCount = logicalPageBuffers.length - 1;
+  let notesCount = (4 - ((contentPageCount + 2) % 4)) % 4;
+  if (notesCount === 0) notesCount = 2;
+  let T = 1 + contentPageCount + notesCount + 1;
+  if (T % 4 !== 0) notesCount += 4 - (T % 4);
+  T = 1 + contentPageCount + notesCount + 1;
+
+  for (let n = 0; n < notesCount; n++) {
+    const notesDoc = await createLogicalPageDoc();
+    addFontToDoc(notesDoc, fontBase64);
+    notesDoc.setFont(activeFontName || 'NotoSans', 'normal');
+    notesDoc.setFontSize(14);
+    notesDoc.setTextColor(80);
+    notesDoc.text('Notes', margin, 20);
+    notesDoc.setDrawColor(220);
+    notesDoc.setLineWidth(0.15);
+    for (let line = 0; line < 30; line++) {
+      const y = 28 + line * 6;
+      notesDoc.line(margin, y, LOGICAL_W_MM - margin, y);
+    }
+    logicalPageBuffers.push(notesDoc.output('arraybuffer') as ArrayBuffer);
+  }
+
+  const backDoc = await createLogicalPageDoc();
+  addFontToDoc(backDoc, fontBase64);
+  backDoc.setFont(activeFontName || 'NotoSans', 'normal');
+  backDoc.setFontSize(10);
+  backDoc.setTextColor(100);
+  backDoc.text('The end of this journey.', margin, LOGICAL_H_MM / 2);
+  logicalPageBuffers.push(backDoc.output('arraybuffer') as ArrayBuffer);
+
+  while (logicalPageBuffers.length % 4 !== 0) {
+    const extraNotes = await createLogicalPageDoc();
+    addFontToDoc(extraNotes, fontBase64);
+    extraNotes.setFont(activeFontName || 'NotoSans', 'normal');
+    extraNotes.setFontSize(14);
+    extraNotes.setTextColor(80);
+    extraNotes.text('Notes', margin, 20);
+    extraNotes.setDrawColor(220);
+    extraNotes.setLineWidth(0.15);
+    for (let line = 0; line < 30; line++) {
+      const y = 28 + line * 6;
+      extraNotes.line(margin, y, LOGICAL_W_MM - margin, y);
+    }
+    logicalPageBuffers.splice(logicalPageBuffers.length - 1, 0, extraNotes.output('arraybuffer') as ArrayBuffer);
+  }
+
+  report('Rendering pages…');
+  const pageImages: string[] = [];
+  const scale = 2;
+  for (let p = 0; p < logicalPageBuffers.length; p++) {
+    report(`Rendering page ${p + 1}/${logicalPageBuffers.length}…`);
+    const dataUrl = await renderPdfPageToImageDataUrl(logicalPageBuffers[p], scale);
+    pageImages.push(dataUrl);
+  }
+
+  const finalT = pageImages.length;
+  const finalDoc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: [A4_W_MM, A4_H_MM],
+    hotfixes: ['px_scaling'],
+  });
+
+  for (let i = 0; i < finalT / 2; i++) {
+    finalDoc.addPage([A4_W_MM, A4_H_MM], 'landscape');
+    const leftIdx = finalT - 2 * i - 1;
+    const rightIdx = 2 * i;
+    finalDoc.addImage(pageImages[leftIdx], 'PNG', 0, 0, LOGICAL_W_MM, LOGICAL_H_MM);
+    finalDoc.addImage(pageImages[rightIdx], 'PNG', LOGICAL_W_MM, 0, LOGICAL_W_MM, LOGICAL_H_MM);
+  }
+  for (let i = 0; i < finalT / 2; i++) {
+    finalDoc.addPage([A4_W_MM, A4_H_MM], 'landscape');
+    const leftIdx = 2 * i + 1;
+    const rightIdx = finalT - 2 * i - 2;
+    finalDoc.addImage(pageImages[leftIdx], 'PNG', 0, 0, LOGICAL_W_MM, LOGICAL_H_MM);
+    finalDoc.addImage(pageImages[rightIdx], 'PNG', LOGICAL_W_MM, 0, LOGICAL_W_MM, LOGICAL_H_MM);
+  }
+  finalDoc.deletePage(1);
+
   report('Finalizing…');
   const safeName = sanitizeForPDF(journey.title || 'journey') || 'journey';
-  doc.save(`${safeName}.pdf`);
+  finalDoc.save(`${safeName}.pdf`);
 }
