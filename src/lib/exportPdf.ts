@@ -115,10 +115,15 @@ function estimateBlockHeight(
     h += lines.length * 6;
   }
 
-  // Photos: PDF uses first 3 per challenge to avoid huge file size
-  const photoCount = Math.min(challenge.photoIds.length, 3);
+  // Photos: up to 10 per challenge, 2-column grid
+  const photoCount = Math.min(challenge.photoIds.length, 10);
   if (photoCount > 0) {
-    h += 60;
+    const PHOTO_SIZE = 40;
+    const GAP = 5;
+    const rows = Math.ceil(photoCount / 2);
+    h += 4; // divider
+    h += rows * PHOTO_SIZE + (rows - 1) * GAP;
+    h += 8;
   }
 
   // Spacing after block
@@ -331,13 +336,16 @@ export async function exportPdf(
   const marginTop = 25;
   const marginBottom = 20;
 
-  // Total photos we will load (first 3 per challenge)
+  // Total photos we will load (up to 10 per challenge)
   const totalPhotos = groups.reduce(
     (sum, g) =>
-      sum + g.challenges.reduce((s, c) => s + Math.min(c.photoIds.length, 3), 0),
+      sum + g.challenges.reduce((s, c) => s + Math.min(c.photoIds.length, 10), 0),
     0,
   );
   let photosLoaded = 0;
+
+  const PHOTO_SIZE = 40;
+  const PHOTO_GAP = 5;
 
   for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
     const group = groups[groupIndex];
@@ -441,20 +449,37 @@ export async function exportPdf(
         y += (lines as string[]).length * 6;
       }
 
-      // Photos: first 3 per challenge for PDF (layout limit; keeps file size reasonable)
-      const photoIds = challenge.photoIds.slice(0, 3);
+      // Photos: up to 10 per challenge, 2-column grid (square thumbnails, cover-crop)
+      const photoIds = challenge.photoIds.slice(0, 10);
       if (photoIds.length > 0) {
-        const photoSize = 40;
-        const gap = 5;
-
-        // Thin divider above the photo block for visual separation
         doc.setDrawColor(210);
         doc.setLineWidth(0.2);
         doc.line(margin, y, pageWidth - margin, y);
         y += 4;
 
-        let x = margin;
-        for (const pid of photoIds) {
+        let blockStartY = y;
+        let pagePhotoStart = 0;
+
+        for (let i = 0; i < photoIds.length; i++) {
+          const row = Math.floor((i - pagePhotoStart) / 2);
+          const col = (i - pagePhotoStart) % 2;
+          const placeX = margin + col * (PHOTO_SIZE + PHOTO_GAP);
+          let placeY = blockStartY + row * (PHOTO_SIZE + PHOTO_GAP);
+
+          if (placeY + PHOTO_SIZE > pageHeight - marginBottom) {
+            doc.addPage();
+            if (activeFontName) doc.setFont(activeFontName, 'normal');
+            doc.setFillColor(250, 247, 242);
+            doc.rect(0, 0, pageWidth, pageHeight, 'F');
+            doc.setFontSize(9);
+            doc.setTextColor(100);
+            doc.text(group.label, margin, marginTop);
+            blockStartY = marginTop + 10;
+            pagePhotoStart = i;
+            placeY = blockStartY;
+          }
+
+          const pid = photoIds[i];
           if (totalPhotos > 0) {
             report(`Loading photos… (${photosLoaded + 1}/${totalPhotos})`);
           }
@@ -464,16 +489,16 @@ export async function exportPdf(
               const originalDataUrl = await blobToDataUrl(blob);
               const croppedDataUrl = await getCachedCroppedSquareForPdf(pid, originalDataUrl);
               const format = croppedDataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-              doc.addImage(croppedDataUrl, format, x, y, photoSize, photoSize);
+              doc.addImage(croppedDataUrl, format, placeX, placeY, PHOTO_SIZE, PHOTO_SIZE);
             } catch (e) {
               console.error('PDF photo render failed', pid, e);
             }
           }
           photosLoaded += 1;
-          x += photoSize + gap;
         }
 
-        y += photoSize + 8;
+        const rowsOnLastPage = Math.ceil((photoIds.length - pagePhotoStart) / 2);
+        y = blockStartY + rowsOnLastPage * (PHOTO_SIZE + PHOTO_GAP) - PHOTO_GAP + PHOTO_SIZE + 8;
       }
 
       // Spacing before next challenge
