@@ -350,10 +350,10 @@ export async function exportPdf(
         y = marginTop;
         doc.setFontSize(9);
         doc.setTextColor(100);
-        doc.text(`${group.label} (cont.)`, margin, y);
+        doc.text(group.label, margin, y);
         y += 6;
       } else if (isFirstPageForGroup && ensureSpace(doc, blockHeight, marginTop, marginBottom, y)) {
-        // Extremely full first page: start fresh with "(cont.)"
+        // Extremely full first page: start fresh with same date header
         doc.addPage();
         if (activeFontName) {
           doc.setFont(activeFontName, 'normal');
@@ -363,7 +363,7 @@ export async function exportPdf(
         y = marginTop;
         doc.setFontSize(9);
         doc.setTextColor(100);
-        doc.text(`${group.label} (cont.)`, margin, y);
+        doc.text(group.label, margin, y);
         y += 6;
       }
 
