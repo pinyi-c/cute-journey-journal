@@ -108,18 +108,18 @@ function estimateBlockHeight(
 
   // Caption lines
   if (challenge.caption) {
-    const maxWidth = pageWidth - 2 * margin;
+    const maxWidth = pageWidth; // caller passes content width (e.g. half-page contentWidth)
     const cap = sanitizeForPDF(challenge.caption);
     const lines = doc.splitTextToSize(cap, maxWidth) as string[];
     h += 2; // spacing before caption
     h += lines.length * 6;
   }
 
-  // Photos: up to 10 per challenge, 2-column grid
+  // Photos: up to 10 per challenge, 2-column grid (match booklet PHOTO_SIZE/GAP)
   const photoCount = Math.min(challenge.photoIds.length, 10);
   if (photoCount > 0) {
-    const PHOTO_SIZE = 40;
-    const GAP = 5;
+    const PHOTO_SIZE = 36;
+    const GAP = 4;
     const rows = Math.ceil(photoCount / 2);
     h += 4; // divider
     h += rows * PHOTO_SIZE + (rows - 1) * GAP;
@@ -133,13 +133,11 @@ function estimateBlockHeight(
 }
 
 function ensureSpace(
-  doc: any,
   requiredHeight: number,
-  marginTop: number,
   marginBottom: number,
   currentY: number,
+  pageHeight: number,
 ): boolean {
-  const pageHeight = doc.internal.pageSize.getHeight();
   return currentY + requiredHeight > pageHeight - marginBottom;
 }
 
@@ -218,7 +216,20 @@ export async function exportPdf(
 
   report('Preparing fonts…');
   const { jsPDF } = await import('jspdf');
-  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
+
+  const pageW = 297;
+  const pageH = 210;
+  const halfW = 148.5;
+  const margin = 10;
+  const contentWidth = halfW - 2 * margin;
+  const marginTop = 12;
+  const marginBottom = 12;
+
+  const getHalfContentLeft = (side: 'left' | 'right') =>
+    side === 'left' ? margin : halfW + margin;
+  const withHalf = (side: 'left' | 'right', fn: (contentLeft: number) => void) =>
+    fn(getHalfContentLeft(side));
 
   // Load a CJK font so English / Chinese / Japanese render correctly.
   // We embed NotoSansTC-Regular.ttf as an Identity-H Unicode font.
@@ -254,89 +265,61 @@ export async function exportPdf(
     );
   }
 
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 15;
-  const pageHeight = doc.internal.pageSize.getHeight();
-
-  // Light paper-like background for all pages
   doc.setFillColor(250, 247, 242);
-  doc.rect(0, 0, pageWidth, pageHeight, 'F');
+  doc.rect(0, 0, pageW, pageH, 'F');
+  if (activeFontName) doc.setFont(activeFontName, 'normal');
 
-  let y = 32;
-
-  // Cover page
-  // Always ensure our embedded CJK font is active before any text.
-  if (activeFontName) {
-    doc.setFont(activeFontName, 'normal');
-  }
-  // Big title only
-  doc.setTextColor(40);
-  doc.setFontSize(24);
-  doc.text(safeTitleForPDF(journey.title), pageWidth / 2, y, { align: 'center' });
-  y += 10;
-
-  // Date line under title
-  doc.setFontSize(12);
-  doc.setTextColor(100);
-  doc.text(
-    `${journey.startDate}${journey.endDate ? ' – ' + journey.endDate : ''}`,
-    pageWidth / 2,
-    y,
-    { align: 'center' },
-  );
-  y += 12;
-  if (journey.buddyName) {
+  withHalf('left', (contentLeft) => {
+    const centerX = contentLeft + contentWidth / 2;
+    let y = 40;
     doc.setFontSize(10);
-    doc.text(`with ${journey.buddyName}`, pageWidth / 2, y, { align: 'center' });
+    doc.setTextColor(100);
+    doc.text(safeTitleForPDF(journey.title), centerX, y, { align: 'center' });
     y += 8;
-  }
-  y += 10;
+    doc.setFontSize(9);
+    doc.text(
+      `${journey.startDate}${journey.endDate ? ' – ' + journey.endDate : ''}`,
+      centerX,
+      y,
+      { align: 'center' },
+    );
+  });
 
-  // Optional cover photo (portrait 4:5, rounded corners, cover-crop, subtle shadow)
-  if (coverPhotoId) {
-    try {
-      report('Preparing cover photo…');
-      const blob = await getPhoto(coverPhotoId);
-      if (blob) {
-        const originalDataUrl = await blobToDataUrl(blob);
-        const coverW = 100;
-        const coverH = 125;
-        const radius = 8;
-        const coverDataUrl = await createRoundedImageDataUrl(
-          originalDataUrl,
-          coverW,
-          coverH,
-          radius,
-        );
-        const coverX = (pageWidth - coverW) / 2;
-        doc.setFillColor(200, 200, 200);
-        doc.rect(coverX + 2, y + 2, coverW, coverH, 'F');
-        doc.addImage(coverDataUrl, 'PNG', coverX, y, coverW, coverH);
-        y += coverH + 12;
-      }
-    } catch (e) {
-      console.error('PDF cover photo failed', coverPhotoId, e);
+  withHalf('right', (contentLeft) => {
+    const centerX = contentLeft + contentWidth / 2;
+    let y = 50;
+    doc.setTextColor(40);
+    doc.setFontSize(24);
+    doc.text(safeTitleForPDF(journey.title), centerX, y, { align: 'center' });
+    y += 10;
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(
+      `${journey.startDate}${journey.endDate ? ' – ' + journey.endDate : ''}`,
+      centerX,
+      y,
+      { align: 'center' },
+    );
+    y += 12;
+    if (journey.buddyName) {
+      doc.setFontSize(10);
+      doc.text(`with ${journey.buddyName}`, centerX, y, { align: 'center' });
+      y += 10;
     }
-  }
-
-  // Tagline
-  doc.setFontSize(10);
-  doc.setTextColor(120);
-  doc.text(
-    'Three days in Taipei, forever in the camera roll.',
-    pageWidth / 2,
-    y,
-    { align: 'center' },
-  );
-  y += 16;
+    y += 8;
+    doc.setFontSize(10);
+    doc.setTextColor(120);
+    doc.text(
+      'Three days in Taipei, forever in the camera roll.',
+      centerX,
+      y,
+      { align: 'center' },
+    );
+  });
 
   // Challenge pages (only export completed challenges, grouped diary-style by date)
   const completedChallenges = journey.challenges.filter(c => c.completed);
   const groups = groupByDate(completedChallenges, journey);
-  const marginTop = 25;
-  const marginBottom = 20;
-
-  // Total photos we will load (up to 10 per challenge)
   const totalPhotos = groups.reduce(
     (sum, g) =>
       sum + g.challenges.reduce((s, c) => s + Math.min(c.photoIds.length, 10), 0),
@@ -344,152 +327,155 @@ export async function exportPdf(
   );
   let photosLoaded = 0;
 
-  const PHOTO_SIZE = 40;
-  const PHOTO_GAP = 5;
+  const PHOTO_SIZE = 36;
+  const PHOTO_GAP = 4;
+
+  type Half = 'left' | 'right';
+  let currentSide: Half = 'right';
+  let currentY = marginTop;
+
+  const startNewHalf = () => {
+    currentSide = currentSide === 'right' ? 'left' : 'right';
+    currentY = marginTop;
+  };
+
+  const addContentSpread = () => {
+    doc.addPage('a4', 'landscape');
+    doc.setFillColor(250, 247, 242);
+    doc.rect(0, 0, pageW, pageH, 'F');
+    currentSide = 'right';
+    currentY = marginTop;
+  };
+
+  if (groups.length > 0) addContentSpread();
 
   for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
     const group = groups[groupIndex];
-    let isFirstPageForGroup = true;
-
     if (group.challenges.length === 0) continue;
 
     report(
-      `Building pages… (${group.label}${groups.length > 1 ? ` ${groupIndex + 1}/${groups.length}` : ''})`,
+      `Building pages… (${group.label}${groups.length > 1 ? ` ${groupIndex + 1}/${groups.length}` : ''})`
     );
-    doc.addPage();
-    if (activeFontName) {
-      doc.setFont(activeFontName, 'normal');
-    }
-    doc.setFillColor(250, 247, 242);
-    doc.rect(0, 0, pageWidth, pageHeight, 'F');
-    y = marginTop;
-    doc.setFontSize(11);
-    doc.setTextColor(80);
-    doc.text(group.label, margin, y);
-    y += 4;
-    // thin divider
-    doc.setDrawColor(210);
-    doc.setLineWidth(0.2);
-    doc.line(margin, y, pageWidth - margin, y);
-    y += 6;
 
+    let needDateHeader = true;
+    const dateHeaderHeight = 14;
     for (const challenge of group.challenges) {
-      const blockHeight = estimateBlockHeight(doc, challenge, pageWidth, margin);
+      const blockHeight = estimateBlockHeight(doc, challenge, contentWidth, margin);
 
-      if (!isFirstPageForGroup && ensureSpace(doc, blockHeight, marginTop, marginBottom, y)) {
-        doc.addPage();
-        if (activeFontName) {
-          doc.setFont(activeFontName, 'normal');
+      if (needDateHeader) {
+        if (ensureSpace(dateHeaderHeight + blockHeight, marginBottom, currentY, pageH)) {
+          if (currentSide === 'right') {
+            startNewHalf();
+          } else {
+            addContentSpread();
+          }
+          if (currentSide === 'right') needDateHeader = true;
         }
-        doc.setFillColor(250, 247, 242);
-        doc.rect(0, 0, pageWidth, pageHeight, 'F');
-        y = marginTop;
-        doc.setFontSize(9);
-        doc.setTextColor(100);
-        doc.text(group.label, margin, y);
-        y += 6;
-      } else if (isFirstPageForGroup && ensureSpace(doc, blockHeight, marginTop, marginBottom, y)) {
-        // Extremely full first page: start fresh with same date header
-        doc.addPage();
-        if (activeFontName) {
-          doc.setFont(activeFontName, 'normal');
+        if (needDateHeader) {
+          const contentLeft = getHalfContentLeft(currentSide);
+          if (activeFontName) doc.setFont(activeFontName, 'normal');
+          doc.setFontSize(11);
+          doc.setTextColor(80);
+          doc.text(group.label, contentLeft, currentY);
+          currentY += 4;
+          doc.setDrawColor(210);
+          doc.setLineWidth(0.2);
+          doc.line(contentLeft, currentY, contentLeft + contentWidth, currentY);
+          currentY += 6;
+          needDateHeader = false;
         }
-        doc.setFillColor(250, 247, 242);
-        doc.rect(0, 0, pageWidth, pageHeight, 'F');
-        y = marginTop;
-        doc.setFontSize(9);
-        doc.setTextColor(100);
-        doc.text(group.label, margin, y);
-        y += 6;
+      } else {
+        if (ensureSpace(blockHeight, marginBottom, currentY, pageH)) {
+          if (currentSide === 'right') {
+            startNewHalf();
+          } else {
+            addContentSpread();
+            if (activeFontName) doc.setFont(activeFontName, 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(100);
+            doc.text(group.label, getHalfContentLeft(currentSide), currentY);
+            currentY += 6;
+          }
+        }
       }
 
-      isFirstPageForGroup = false;
+      const contentLeft = getHalfContentLeft(currentSide);
 
-      // Title
       doc.setFontSize(13);
-      if (activeFontName) {
-        doc.setFont(activeFontName, 'normal');
-      }
+      if (activeFontName) doc.setFont(activeFontName, 'normal');
       doc.setTextColor(40);
-      doc.text(safeTitleForPDF(challenge.title), margin, y);
-      y += 6;
+      doc.text(safeTitleForPDF(challenge.title), contentLeft, currentY);
+      currentY += 6;
 
-      // Small metadata line (date / location)
       doc.setFontSize(8);
       doc.setTextColor(120);
       const metaParts: string[] = [];
       if (challenge.date) metaParts.push(challenge.date);
       if (challenge.location) metaParts.push(challenge.location);
       if (metaParts.length > 0) {
-        doc.text(metaParts.join(' • '), margin, y);
-        y += 6;
+        doc.text(metaParts.join(' • '), contentLeft, currentY);
+        currentY += 6;
       } else {
-        y += 2;
+        currentY += 2;
       }
 
-      // Caption (italic-like: smaller + quotes)
       if (challenge.caption) {
         doc.setFontSize(11);
-        const cap = sanitizeForPDF(challenge.caption);
-        // Ensure the embedded CJK font is active before caption text.
-        if (activeFontName) {
-          doc.setFont(activeFontName, 'normal');
-        }
-        const currentFont = doc.getFont();
-        if (currentFont.fontName !== FONT_NAME_TC) {
-          console.warn(
-            `PDF export: active font before caption is "${currentFont.fontName}", expected "${FONT_NAME_TC}".`
-          );
-        }
+        if (activeFontName) doc.setFont(activeFontName, 'normal');
         doc.setTextColor(90);
         const quoted = `“${cap}”`;
-        const lines = doc.splitTextToSize(quoted, pageWidth - 2 * margin);
-        y += 2;
-        doc.text(lines, margin, y);
-        y += (lines as string[]).length * 6;
+        const lines = doc.splitTextToSize(quoted, contentWidth) as string[];
+        currentY += 2;
+        doc.text(lines, contentLeft, currentY);
+        currentY += lines.length * 6;
       }
 
-      // Photos: up to 10 per challenge, 2-column grid (square thumbnails, cover-crop)
       const photoIds = challenge.photoIds.slice(0, 10);
       if (photoIds.length > 0) {
         doc.setDrawColor(210);
         doc.setLineWidth(0.2);
-        doc.line(margin, y, pageWidth - margin, y);
-        y += 4;
+        doc.line(contentLeft, currentY, contentLeft + contentWidth, currentY);
+        currentY += 4;
 
-        let blockStartY = y;
-        let pagePhotoStart = 0;
+        let blockStartY = currentY;
+        let photoStartInBlock = 0;
+        let halfContentLeft = contentLeft;
 
         for (let i = 0; i < photoIds.length; i++) {
-          const row = Math.floor((i - pagePhotoStart) / 2);
-          const col = (i - pagePhotoStart) % 2;
-          const placeX = margin + col * (PHOTO_SIZE + PHOTO_GAP);
+          const row = Math.floor((i - photoStartInBlock) / 2);
+          const col = (i - photoStartInBlock) % 2;
+          const placeX = halfContentLeft + col * (PHOTO_SIZE + PHOTO_GAP);
           let placeY = blockStartY + row * (PHOTO_SIZE + PHOTO_GAP);
 
-          if (placeY + PHOTO_SIZE > pageHeight - marginBottom) {
-            doc.addPage();
-            if (activeFontName) doc.setFont(activeFontName, 'normal');
-            doc.setFillColor(250, 247, 242);
-            doc.rect(0, 0, pageWidth, pageHeight, 'F');
-            doc.setFontSize(9);
-            doc.setTextColor(100);
-            doc.text(group.label, margin, marginTop);
-            blockStartY = marginTop + 10;
-            pagePhotoStart = i;
+          if (placeY + PHOTO_SIZE > pageH - marginBottom) {
+            if (currentSide === 'right') {
+              startNewHalf();
+              halfContentLeft = getHalfContentLeft(currentSide);
+            } else {
+              addContentSpread();
+              halfContentLeft = getHalfContentLeft(currentSide);
+              if (activeFontName) doc.setFont(activeFontName, 'normal');
+              doc.setFontSize(9);
+              doc.setTextColor(100);
+              doc.text(group.label, halfContentLeft, currentY);
+              currentY += 6;
+            }
+            blockStartY = currentY;
+            photoStartInBlock = i;
             placeY = blockStartY;
           }
 
           const pid = photoIds[i];
-          if (totalPhotos > 0) {
-            report(`Loading photos… (${photosLoaded + 1}/${totalPhotos})`);
-          }
+          if (totalPhotos > 0) report(`Loading photos… (${photosLoaded + 1}/${totalPhotos})`);
           const blob = await getPhoto(pid);
           if (blob) {
             try {
               const originalDataUrl = await blobToDataUrl(blob);
               const croppedDataUrl = await getCachedCroppedSquareForPdf(pid, originalDataUrl);
               const format = croppedDataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-              doc.addImage(croppedDataUrl, format, placeX, placeY, PHOTO_SIZE, PHOTO_SIZE);
+              const px = halfContentLeft + (i - photoStartInBlock) % 2 * (PHOTO_SIZE + PHOTO_GAP);
+              const py = blockStartY + Math.floor((i - photoStartInBlock) / 2) * (PHOTO_SIZE + PHOTO_GAP);
+              doc.addImage(croppedDataUrl, format, px, py, PHOTO_SIZE, PHOTO_SIZE);
             } catch (e) {
               console.error('PDF photo render failed', pid, e);
             }
@@ -497,12 +483,11 @@ export async function exportPdf(
           photosLoaded += 1;
         }
 
-        const rowsOnLastPage = Math.ceil((photoIds.length - pagePhotoStart) / 2);
-        y = blockStartY + rowsOnLastPage * (PHOTO_SIZE + PHOTO_GAP) - PHOTO_GAP + PHOTO_SIZE + 8;
+        const rowsInBlock = Math.ceil((photoIds.length - photoStartInBlock) / 2);
+        currentY = blockStartY + rowsInBlock * (PHOTO_SIZE + PHOTO_GAP) - PHOTO_GAP + PHOTO_SIZE + 8;
       }
 
-      // Spacing before next challenge
-      y += 6;
+      currentY += 6;
     }
   }
 
