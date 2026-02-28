@@ -170,9 +170,6 @@ export default function Summary() {
             Complete at least one challenge to export your journey.
           </p>
         )}
-        <p className="text-xs text-muted-foreground text-center">
-          PDF supports Chinese text if NotoSansTC font is placed in /public/fonts/
-        </p>
       </div>
 
       <PhotoPreviewModal url={previewUrl} onClose={() => setPreviewUrl(null)} />
