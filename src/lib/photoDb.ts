@@ -33,6 +33,12 @@ export async function deletePhoto(id: string): Promise<void> {
   await db.delete(STORE_NAME, id);
 }
 
+/** Remove all photos from IndexedDB (e.g. when starting a new journey). */
+export async function clearAllPhotos(): Promise<void> {
+  const db = await getDb();
+  await db.clear(STORE_NAME);
+}
+
 export async function getPhotoUrl(id: string): Promise<string | null> {
   const blob = await getPhoto(id);
   if (!blob) return null;

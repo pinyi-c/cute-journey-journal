@@ -4,6 +4,17 @@ import { useJourney, ThemeId } from '@/lib/journeyContext';
 import { ThemePicker } from '@/components/ThemePicker';
 import mascotUrl from '@/assets/mascot.svg';
 import { INPUT_FIELD_CLASSES } from '@/lib/constants';
+import { clearAllPhotos } from '@/lib/photoDb';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function Onboarding() {
   const { journey, createJourney, updateJourneyDetails, resetJourney } = useJourney();
@@ -11,6 +22,7 @@ export default function Onboarding() {
   const location = useLocation();
   const isEditing = Boolean(location.state && (location.state as { edit?: boolean }).edit && journey);
   const [showNewForm, setShowNewForm] = useState(false);
+  const [showNewJourneyConfirm, setShowNewJourneyConfirm] = useState(false);
   const [title, setTitle] = useState(
     journey ? journey.title : "Erina's Taipei Adventure Journal",
   );
@@ -35,14 +47,37 @@ export default function Onboarding() {
           Continue Journey ✨
         </button>
         <button
-          onClick={() => {
-            resetJourney();
-            setShowNewForm(true);
-          }}
+          onClick={() => setShowNewJourneyConfirm(true)}
           className="mt-4 text-sm text-muted-foreground underline"
         >
           Start a new journey
         </button>
+
+        <AlertDialog open={showNewJourneyConfirm} onOpenChange={setShowNewJourneyConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Start a new journey?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will delete your current journey and all saved photos. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={async (e) => {
+                  e.preventDefault();
+                  setShowNewJourneyConfirm(false);
+                  await clearAllPhotos();
+                  resetJourney();
+                  setShowNewForm(true);
+                }}
+              >
+                Start new
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   }
