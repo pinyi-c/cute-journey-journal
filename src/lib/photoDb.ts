@@ -4,6 +4,7 @@ const DB_NAME = 'journey-photos';
 const STORE_NAME = 'photos';
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
+const urlToId = new Map<string, string>();
 
 function getDb() {
   if (!dbPromise) {
@@ -42,7 +43,9 @@ export async function clearAllPhotos(): Promise<void> {
 export async function getPhotoUrl(id: string): Promise<string | null> {
   const blob = await getPhoto(id);
   if (!blob) return null;
-  return URL.createObjectURL(blob);
+  const url = URL.createObjectURL(blob);
+  urlToId.set(url, id);
+  return url;
 }
 
 export async function blobToDataUrl(blob: Blob): Promise<string> {
@@ -52,4 +55,8 @@ export async function blobToDataUrl(blob: Blob): Promise<string> {
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
+}
+
+export function getPhotoIdForUrl(url: string): string | null {
+  return urlToId.get(url) ?? null;
 }
