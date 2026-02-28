@@ -53,9 +53,8 @@ function addFontToDoc(doc: any, fontBase64: string | null): string | null {
   }
 }
 
-/** Create a single logical page doc (A5 landscape 148.5×210mm). */
-async function createLogicalPageDoc(): Promise<any> {
-  const { jsPDF } = await import('jspdf');
+/** Create a single logical page doc (A5 landscape 148.5×210mm). jsPDF is passed in so callers use one consistent import. */
+function createLogicalPageDoc(jsPDF: any): any {
   return new jsPDF({
     unit: 'mm',
     format: [LOGICAL_W_MM, LOGICAL_H_MM],
@@ -269,6 +268,9 @@ export async function exportPdf(
 ) {
   const report = (msg: string) => onProgress?.(msg);
 
+  const jspdfMod = await import('jspdf');
+  const jsPDF = jspdfMod.jsPDF;
+
   report('Preparing fonts…');
   let fontBase64: string | null = null;
   try {
@@ -293,7 +295,7 @@ export async function exportPdf(
   const logicalPageBuffers: ArrayBuffer[] = [];
 
   // Front cover (logical page 1)
-  const frontDoc = await createLogicalPageDoc();
+  const frontDoc = createLogicalPageDoc(jsPDF);
   addFontToDoc(frontDoc, fontBase64);
   frontDoc.setFillColor(250, 247, 242);
   frontDoc.rect(0, 0, LOGICAL_W_MM, LOGICAL_H_MM, 'F');
@@ -350,16 +352,16 @@ export async function exportPdf(
     }
   };
 
-  const startNewLogicalPage = async () => {
+  const startNewLogicalPage = () => {
     finishLogicalPage();
-    currentDoc = await createLogicalPageDoc();
+    currentDoc = createLogicalPageDoc(jsPDF);
     activeFontName = addFontToDoc(currentDoc, fontBase64);
     currentDoc.setFillColor(250, 247, 242);
     currentDoc.rect(0, 0, LOGICAL_W_MM, LOGICAL_H_MM, 'F');
     currentY = marginTop;
   };
 
-  if (groups.length > 0) await startNewLogicalPage();
+  if (groups.length > 0) startNewLogicalPage();
 
   for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
     const group = groups[groupIndex];
@@ -372,7 +374,7 @@ export async function exportPdf(
     let needDateHeader = true;
     const dateHeaderHeight = 14;
     for (const challenge of group.challenges) {
-      if (!currentDoc) await startNewLogicalPage();
+      if (!currentDoc) startNewLogicalPage();
       const doc = currentDoc;
       const blockHeight = estimateBlockHeight(doc, challenge, contentWidth, margin);
       const contentLeft = margin;
@@ -381,7 +383,7 @@ export async function exportPdf(
         if (
           ensureSpace(dateHeaderHeight + blockHeight, marginBottom, currentY, LOGICAL_H_MM)
         ) {
-          await startNewLogicalPage();
+          startNewLogicalPage();
           needDateHeader = true;
         }
         if (needDateHeader && currentDoc) {
@@ -398,7 +400,7 @@ export async function exportPdf(
         }
       } else {
         if (ensureSpace(blockHeight, marginBottom, currentY, LOGICAL_H_MM)) {
-          await startNewLogicalPage();
+          startNewLogicalPage();
           if (activeFontName) currentDoc?.setFont(activeFontName, 'normal');
           currentDoc?.setFontSize(9);
           currentDoc?.setTextColor(100);
@@ -454,7 +456,7 @@ export async function exportPdf(
           let placeY = blockStartY + row * (PHOTO_SIZE + PHOTO_GAP);
 
           if (placeY + PHOTO_SIZE > LOGICAL_H_MM - marginBottom) {
-            await startNewLogicalPage();
+            startNewLogicalPage();
             if (activeFontName) currentDoc?.setFont(activeFontName, 'normal');
             currentDoc?.setFontSize(9);
             currentDoc?.setTextColor(100);
@@ -501,7 +503,7 @@ export async function exportPdf(
   T = 1 + contentPageCount + notesCount + 1;
 
   for (let n = 0; n < notesCount; n++) {
-    const notesDoc = await createLogicalPageDoc();
+    const notesDoc = createLogicalPageDoc(jsPDF);
     addFontToDoc(notesDoc, fontBase64);
     notesDoc.setFont(activeFontName || 'NotoSans', 'normal');
     notesDoc.setFontSize(14);
@@ -516,7 +518,7 @@ export async function exportPdf(
     logicalPageBuffers.push(notesDoc.output('arraybuffer') as ArrayBuffer);
   }
 
-  const backDoc = await createLogicalPageDoc();
+  const backDoc = createLogicalPageDoc(jsPDF);
   addFontToDoc(backDoc, fontBase64);
   backDoc.setFont(activeFontName || 'NotoSans', 'normal');
   backDoc.setFontSize(10);
@@ -525,7 +527,7 @@ export async function exportPdf(
   logicalPageBuffers.push(backDoc.output('arraybuffer') as ArrayBuffer);
 
   while (logicalPageBuffers.length % 4 !== 0) {
-    const extraNotes = await createLogicalPageDoc();
+    const extraNotes = createLogicalPageDoc(jsPDF);
     addFontToDoc(extraNotes, fontBase64);
     extraNotes.setFont(activeFontName || 'NotoSans', 'normal');
     extraNotes.setFontSize(14);
