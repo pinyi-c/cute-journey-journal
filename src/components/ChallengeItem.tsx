@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Challenge, useJourney } from '@/lib/journeyContext';
 import { PhotoUpload } from './PhotoUpload';
-import { ChevronDown, ChevronUp, Trash2, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, Check, Pencil } from 'lucide-react';
 import { deletePhoto } from '@/lib/photoDb';
 import { INPUT_FIELD_CLASSES, TEXTAREA_FIELD_CLASSES } from '@/lib/constants';
 
@@ -64,22 +64,31 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand }: Props) 
             onChange={e => setTitle(e.target.value)}
             onBlur={handleTitleSave}
             onKeyDown={e => e.key === 'Enter' && handleTitleSave()}
-            className="flex-1 bg-transparent border-b-2 border-primary outline-none font-semibold text-sm"
+            className="flex-1 min-w-0 bg-transparent border-b-2 border-primary outline-none font-semibold text-sm"
             autoFocus
             onClick={e => e.stopPropagation()}
           />
         ) : (
-          <span
-            className={`flex-1 font-semibold text-sm select-none ${
-              challenge.completed ? 'line-through text-muted-foreground' : ''
-            }`}
-            onDoubleClick={(e) => {
-              e.stopPropagation();
-              setEditing(true);
-            }}
-          >
-            {challenge.title}
-          </span>
+          <>
+            <span
+              className={`flex-1 min-w-0 font-semibold text-sm select-none truncate ${
+                challenge.completed ? 'line-through text-muted-foreground' : ''
+              }`}
+            >
+              {challenge.title}
+            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditing(true);
+              }}
+              className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors touch-manipulation"
+              aria-label="Edit title"
+            >
+              <Pencil size={18} />
+            </button>
+          </>
         )}
 
         {challenge.photoIds.length > 0 && (
@@ -98,10 +107,6 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand }: Props) 
       {/* Expanded */}
       {isExpanded && (
         <div className="px-3 pb-3 space-y-3 border-t border-border pt-3">
-          <p className="text-xs text-muted-foreground">
-            💡 Double-tap title to edit
-          </p>
-
           <div>
             <label className="text-xs text-muted-foreground font-medium">Notes / Caption</label>
             <textarea
