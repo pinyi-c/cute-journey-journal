@@ -69,9 +69,9 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand }: Props) 
             onClick={e => e.stopPropagation()}
           />
         ) : (
-          <>
+          <div className="relative flex-1 min-w-0">
             <span
-              className={`flex-1 min-w-0 font-semibold text-sm select-none truncate ${
+              className={`block pr-8 font-semibold text-sm select-none truncate ${
                 challenge.completed ? 'line-through text-muted-foreground' : ''
               }`}
             >
@@ -83,12 +83,12 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand }: Props) 
                 e.stopPropagation();
                 setEditing(true);
               }}
-              className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors touch-manipulation"
+              className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors touch-manipulation"
               aria-label="Edit title"
             >
-              <Pencil size={18} />
+              <Pencil size={16} />
             </button>
-          </>
+          </div>
         )}
 
         {challenge.photoIds.length > 0 && (
