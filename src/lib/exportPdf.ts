@@ -148,6 +148,7 @@ function groupByDate(challenges: JourneyChallenge[], journey: Journey): DateGrou
     }
   }
 
+  // Ascending by date key so logical content pages are chronological (earliest first); do not rely on Map order.
   return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
 }
 
@@ -551,7 +552,8 @@ export async function exportPdf(
     pageImages.push(dataUrl);
   }
 
-  const finalT = pageImages.length;
+  const T = pageImages.length;
+  const sheetCount = T / 4;
   const finalDoc = new jsPDF({
     orientation: 'landscape',
     unit: 'mm',
@@ -559,17 +561,30 @@ export async function exportPdf(
     hotfixes: ['px_scaling'],
   });
 
-  for (let i = 0; i < finalT / 2; i++) {
+  const DEBUG_BOOKLET_MAPPING = false;
+  if (DEBUG_BOOKLET_MAPPING && T === 8) {
+    for (let i = 0; i < sheetCount; i++) {
+      const frontL = i === 0 ? T - 1 - 2 * i : 2 * i;
+      const frontR = i === 0 ? 2 * i : T - 1 - 2 * i;
+      const backL = 2 * i + 1;
+      const backR = T - 2 - 2 * i;
+      console.log(
+        `Sheet${i} front: L=${frontL + 1} R=${frontR + 1}, Sheet${i} back: L=${backL + 1} R=${backR + 1}`,
+      );
+    }
+  }
+
+  for (let i = 0; i < sheetCount; i++) {
     finalDoc.addPage([A4_W_MM, A4_H_MM], 'landscape');
-    const leftIdx = finalT - 2 * i - 1;
-    const rightIdx = 2 * i;
+    const leftIdx = i === 0 ? T - 1 - 2 * i : 2 * i;
+    const rightIdx = i === 0 ? 2 * i : T - 1 - 2 * i;
     finalDoc.addImage(pageImages[leftIdx], 'PNG', 0, 0, LOGICAL_W_MM, LOGICAL_H_MM);
     finalDoc.addImage(pageImages[rightIdx], 'PNG', LOGICAL_W_MM, 0, LOGICAL_W_MM, LOGICAL_H_MM);
   }
-  for (let i = 0; i < finalT / 2; i++) {
+  for (let i = 0; i < sheetCount; i++) {
     finalDoc.addPage([A4_W_MM, A4_H_MM], 'landscape');
     const leftIdx = 2 * i + 1;
-    const rightIdx = finalT - 2 * i - 2;
+    const rightIdx = T - 2 - 2 * i;
     finalDoc.addImage(pageImages[leftIdx], 'PNG', 0, 0, LOGICAL_W_MM, LOGICAL_H_MM);
     finalDoc.addImage(pageImages[rightIdx], 'PNG', LOGICAL_W_MM, 0, LOGICAL_W_MM, LOGICAL_H_MM);
   }
