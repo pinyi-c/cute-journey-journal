@@ -331,7 +331,7 @@ export async function exportPdf(
           COVER_FRAME_W_MM,
           COVER_FRAME_H_MM,
         );
-        coverY = COVER_TOP_MM + COVER_FRAME_H_MM + 12;
+        coverY = COVER_TOP_MM + COVER_FRAME_H_MM + 24; // gap below photo before title (~12mm added)
       } catch (e) {
         console.warn('PDF export: cover image render failed', e);
       }
