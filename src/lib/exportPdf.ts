@@ -264,12 +264,14 @@ export type PdfExportProgressCallback = (message: string) => void;
 export async function exportPdf(
   journey: Journey,
   onProgress?: PdfExportProgressCallback,
-  _coverPhotoId?: string | null,
+  coverPhotoIdParam?: string | null,
 ) {
   const report = (msg: string) => onProgress?.(msg);
 
   const jspdfMod = await import('jspdf');
   const jsPDF = jspdfMod.jsPDF;
+
+  const coverPhotoId = coverPhotoIdParam ?? journey.coverPhotoId ?? null;
 
   report('Preparing fonts…');
   let fontBase64: string | null = null;
@@ -301,7 +303,42 @@ export async function exportPdf(
   frontDoc.rect(0, 0, LOGICAL_W_MM, LOGICAL_H_MM, 'F');
   frontDoc.setFont(FONT_NAME_TC, 'normal');
   const centerX = LOGICAL_W_MM / 2;
-  let y = 50;
+  const COVER_FRAME_W_MM = 80;
+  const COVER_FRAME_H_MM = 100; // 4:5 portrait
+  const COVER_TOP_MM = 20;
+  const COVER_LEFT_MM = centerX - COVER_FRAME_W_MM / 2;
+
+  let coverY = 50; // text start when no cover image
+  if (coverPhotoId) {
+    const blob = await getPhoto(coverPhotoId);
+    if (!blob) {
+      console.warn('PDF export: coverPhotoId exists but getPhoto returned null', coverPhotoId);
+    } else {
+      try {
+        const dataUrl = await blobToDataUrl(blob);
+        const coverDataUrl = await createRoundedImageDataUrl(
+          dataUrl,
+          400,
+          500,
+          20,
+        );
+        const format = coverDataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+        frontDoc.addImage(
+          coverDataUrl,
+          format,
+          COVER_LEFT_MM,
+          COVER_TOP_MM,
+          COVER_FRAME_W_MM,
+          COVER_FRAME_H_MM,
+        );
+        coverY = COVER_TOP_MM + COVER_FRAME_H_MM + 12;
+      } catch (e) {
+        console.warn('PDF export: cover image render failed', e);
+      }
+    }
+  }
+
+  let y = coverY;
   frontDoc.setTextColor(40);
   frontDoc.setFontSize(24);
   frontDoc.text(safeTitleForPDF(journey.title), centerX, y, { align: 'center' });
