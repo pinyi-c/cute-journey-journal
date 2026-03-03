@@ -63,9 +63,10 @@ type ContentBlock = {
   challenge: JourneyChallenge;
 };
 
-/** Logical page: 1=cover, 2..=content, N=back. */
+/** Logical page: 1=cover, 2=inside front cover (blank), 3..=content, N=back. */
 type LogicalPage =
   | { type: 'cover'; journey: Journey; coverPhotoId: string | null }
+  | { type: 'insideFrontCover' }
   | { type: 'content'; blocks: ContentBlock[] }
   | { type: 'notes' }
   | { type: 'back' };
@@ -179,6 +180,7 @@ function buildLogicalPages(
   const pages: LogicalPage[] = [];
 
   pages.push({ type: 'cover', journey, coverPhotoId });
+  pages.push({ type: 'insideFrontCover' });
 
   let currentBlocks: ContentBlock[] = [];
   let currentY = marginTop;
@@ -298,6 +300,10 @@ async function renderLogicalPage(
     doc.setFontSize(10);
     doc.setTextColor(120);
     doc.text('Three days in Taipei, forever in the camera roll.', halfCenterX, y, { align: 'center' });
+    return;
+  }
+
+  if (page.type === 'insideFrontCover') {
     return;
   }
 
