@@ -10,6 +10,9 @@ const A4_W_MM = 297;
 const A4_H_MM = 210;
 const HALF_W_MM = 148.5;
 const PAGE_H_MM = 210;
+// Logical (half) page size for booklet imposition. Left-bound: duplex, flip short edge, fold.
+const LOGICAL_W_MM = 148.5;
+const LOGICAL_H_MM = 210;
 
 /** Add font to a jsPDF instance. */
 function addFontToDoc(doc: any, fontBase64: string | null): string | null {
@@ -55,6 +58,20 @@ type DateGroup = {
   label: string;
   challenges: JourneyChallenge[];
 };
+
+/** One block on a content logical page. */
+type ContentBlock = {
+  dateLabel?: string;
+  groupLabel: string;
+  challenge: JourneyChallenge;
+};
+
+/** Logical page for booklet: page 1=cover, 2..=content, last=back. */
+type LogicalPage =
+  | { type: 'cover'; journey: Journey; coverPhotoId: string | null }
+  | { type: 'content'; blocks: ContentBlock[] }
+  | { type: 'notes' }
+  | { type: 'back' };
 
 // Cache cropped image data URLs per photo + target size to avoid
 // re-encoding the same image multiple times during a single export.
@@ -221,6 +238,264 @@ async function createRoundedImageDataUrl(
   return canvas.toDataURL('image/png');
 }
 
+const CANVAS_W_PX = 1654;
+const CANVAS_H_PX = 2339;
+
+/** Build logical pages in reading order: 1=cover, 2..=content (chronological), last=N=back. Pad with Notes BEFORE back until N is multiple of 4. */
+function buildLogicalPages(
+  journey: Journey,
+  groups: DateGroup[],
+  measureDoc: any,
+  coverPhotoId: string | null,
+  margin: number,
+  marginTop: number,
+  marginBottom: number,
+  contentWidth: number,
+  dateHeaderHeight: number,
+): LogicalPage[] {
+  const pages: LogicalPage[] = [];
+  pages.push({ type: 'cover', journey, coverPhotoId });
+
+  let currentSide: 'left' | 'right' = 'right';
+  let currentY = marginTop;
+  let currentBlocks: ContentBlock[] = [];
+
+  function needNewHalf(required: number): boolean {
+    if (currentY + required <= PAGE_H_MM - marginBottom) return false;
+    if (currentBlocks.length > 0) {
+      pages.push({ type: 'content', blocks: currentBlocks });
+      currentBlocks = [];
+    }
+    currentSide = currentSide === 'left' ? 'right' : 'left';
+    currentY = marginTop;
+    return true;
+  }
+
+  for (const group of groups) {
+    if (group.challenges.length === 0) continue;
+    let needDateHeader = true;
+    for (const challenge of group.challenges) {
+      const blockHeight = estimateBlockHeight(measureDoc, challenge, contentWidth, margin);
+      if (needDateHeader) {
+        needNewHalf(dateHeaderHeight + blockHeight);
+        currentBlocks.push({ dateLabel: group.label, groupLabel: group.label, challenge });
+        currentY = marginTop + dateHeaderHeight + blockHeight + 6;
+        needDateHeader = false;
+      } else {
+        if (needNewHalf(blockHeight)) {
+          currentBlocks.push({ groupLabel: group.label, challenge });
+          currentY = marginTop + 6 + blockHeight + 6;
+        } else {
+          currentBlocks.push({ groupLabel: group.label, challenge });
+          currentY += blockHeight + 6;
+        }
+      }
+    }
+  }
+  if (currentBlocks.length > 0) pages.push({ type: 'content', blocks: currentBlocks });
+
+  const contentPageCount = pages.length - 1;
+  let notesCount = (4 - ((contentPageCount + 2) % 4)) % 4;
+  if (notesCount < 2) notesCount += 4;
+  for (let n = 0; n < notesCount; n++) pages.push({ type: 'notes' });
+  pages.push({ type: 'back' });
+  let N = pages.length;
+  if (N % 4 !== 0) {
+    const extra = 4 - (N % 4);
+    for (let e = 0; e < extra; e++) pages.splice(pages.length - 1, 0, { type: 'notes' });
+    N = pages.length;
+  }
+  return pages;
+}
+
+/** Render one logical page to canvas (same content as jsPDF flow); no pdfjs. */
+async function renderLogicalPageToCanvas(
+  page: LogicalPage,
+  opts: {
+    margin: number;
+    contentWidth: number;
+    marginTop: number;
+    marginBottom: number;
+    PHOTO_SIZE: number;
+    PHOTO_GAP: number;
+    coverPhotoId: string | null;
+    fontFamily: string;
+    report: (m: string) => void;
+    getPhoto: (id: string) => Promise<Blob | undefined>;
+    blobToDataUrl: (b: Blob) => Promise<string>;
+    getCachedCroppedSquareForPdf: (id: string, u: string) => Promise<string>;
+    createRoundedImageDataUrl: (u: string, w: number, h: number, r: number) => Promise<string>;
+  },
+): Promise<string> {
+  const canvas = document.createElement('canvas');
+  canvas.width = CANVAS_W_PX;
+  canvas.height = CANVAS_H_PX;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2d failed');
+  const pxPerMm = CANVAS_W_PX / LOGICAL_W_MM;
+  ctx.fillStyle = 'rgb(250,247,242)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.scale(pxPerMm, pxPerMm);
+  const contentLeft = opts.margin;
+  const centerX = contentLeft + opts.contentWidth / 2;
+
+  if (page.type === 'cover') {
+    const j = page.journey;
+    let y = 50;
+    if (opts.coverPhotoId) {
+      const blob = await opts.getPhoto(opts.coverPhotoId);
+      if (blob) {
+        try {
+          const dataUrl = await opts.blobToDataUrl(blob);
+          const rounded = await opts.createRoundedImageDataUrl(dataUrl, 400, 500, 20);
+          const img = await new Promise<HTMLImageElement>((res, rej) => {
+            const i = new Image();
+            i.onload = () => res(i);
+            i.onerror = rej;
+            i.src = rounded;
+          });
+          const cw = 80;
+          const ch = 100;
+          ctx.drawImage(img, centerX - cw / 2, 20, cw, ch);
+          y = 20 + ch + 24;
+        } catch (_) {}
+      }
+    }
+    ctx.fillStyle = 'rgb(40,40,40)';
+    ctx.font = `24px ${opts.fontFamily}`;
+    ctx.textAlign = 'center';
+    ctx.fillText(safeTitleForPDF(j.title), centerX, y);
+    y += 10;
+    ctx.font = `12px ${opts.fontFamily}`;
+    ctx.fillStyle = 'rgb(100,100,100)';
+    ctx.fillText(`${j.startDate}${j.endDate ? ' – ' + j.endDate : ''}`, centerX, y);
+    y += 12;
+    if (j.buddyName) {
+      ctx.font = `10px ${opts.fontFamily}`;
+      ctx.fillText(`with ${j.buddyName}`, centerX, y);
+      y += 10;
+    }
+    y += 8;
+    ctx.font = `10px ${opts.fontFamily}`;
+    ctx.fillStyle = 'rgb(120,120,120)';
+    ctx.fillText('Three days in Taipei, forever in the camera roll.', centerX, y);
+  } else if (page.type === 'content') {
+    let y = opts.marginTop;
+    ctx.textAlign = 'left';
+    for (const b of page.blocks) {
+      if (b.dateLabel) {
+        ctx.font = `11px ${opts.fontFamily}`;
+        ctx.fillStyle = 'rgb(80,80,80)';
+        ctx.fillText(b.dateLabel, contentLeft, y);
+        y += 4;
+        ctx.strokeStyle = 'rgb(210,210,210)';
+        ctx.lineWidth = 0.2;
+        ctx.beginPath();
+        ctx.moveTo(contentLeft, y);
+        ctx.lineTo(contentLeft + opts.contentWidth, y);
+        ctx.stroke();
+        y += 6;
+      } else if (b.groupLabel) {
+        ctx.font = `9px ${opts.fontFamily}`;
+        ctx.fillStyle = 'rgb(100,100,100)';
+        ctx.fillText(b.groupLabel, contentLeft, y);
+        y += 6;
+      }
+      ctx.font = `13px ${opts.fontFamily}`;
+      ctx.fillStyle = 'rgb(40,40,40)';
+      ctx.fillText(safeTitleForPDF(b.challenge.title), contentLeft, y);
+      y += 6;
+      ctx.font = `8px ${opts.fontFamily}`;
+      ctx.fillStyle = 'rgb(120,120,120)';
+      const meta: string[] = [];
+      if (b.challenge.date) meta.push(b.challenge.date);
+      if (b.challenge.location) meta.push(b.challenge.location);
+      if (meta.length) {
+        ctx.fillText(meta.join(' • '), contentLeft, y);
+        y += 6;
+      } else y += 2;
+      if (b.challenge.caption) {
+        ctx.font = `11px ${opts.fontFamily}`;
+        ctx.fillStyle = 'rgb(90,90,90)';
+        const cap = sanitizeForPDF(b.challenge.caption);
+        const q = `\u201C${cap}\u201D`;
+        const lineH = 6;
+        y += 2;
+        const parts = q.split(/(\s+)/);
+        let line = '';
+        for (let i = 0; i < parts.length; i++) {
+          const test = line + (i ? parts[i] : '');
+          if (ctx.measureText(test).width > opts.contentWidth && line) {
+            ctx.fillText(line, contentLeft, y);
+            y += lineH;
+            line = parts[i] || '';
+          } else line = test;
+        }
+        if (line) {
+          ctx.fillText(line, contentLeft, y);
+          y += lineH;
+        }
+        y += 4;
+      }
+      const pids = b.challenge.photoIds.slice(0, 10);
+      if (pids.length) {
+        ctx.strokeStyle = 'rgb(210,210,210)';
+        ctx.lineWidth = 0.2;
+        ctx.beginPath();
+        ctx.moveTo(contentLeft, y);
+        ctx.lineTo(contentLeft + opts.contentWidth, y);
+        ctx.stroke();
+        y += 4;
+        const sz = opts.PHOTO_SIZE;
+        const gap = opts.PHOTO_GAP;
+        for (let i = 0; i < pids.length; i++) {
+          const col = i % 2;
+          const row = Math.floor(i / 2);
+          const px = contentLeft + col * (sz + gap);
+          const py = y + row * (sz + gap);
+          const blob = await opts.getPhoto(pids[i]);
+          if (blob) {
+            try {
+              const orig = await opts.blobToDataUrl(blob);
+              const cropped = await opts.getCachedCroppedSquareForPdf(pids[i], orig);
+              const img = await new Promise<HTMLImageElement>((res, rej) => {
+                const im = new Image();
+                im.onload = () => res(im);
+                im.onerror = rej;
+                im.src = cropped;
+              });
+              ctx.drawImage(img, px, py, sz, sz);
+            } catch (_) {}
+          }
+        }
+        const rows = Math.ceil(pids.length / 2);
+        y += rows * (sz + gap) - gap + sz + 8;
+      }
+      y += 6;
+    }
+  } else if (page.type === 'notes') {
+    ctx.font = `14px ${opts.fontFamily}`;
+    ctx.fillStyle = 'rgb(80,80,80)';
+    ctx.fillText('Notes', contentLeft, 20);
+    ctx.strokeStyle = 'rgb(220,220,220)';
+    ctx.lineWidth = 0.15;
+    for (let line = 0; line < 30; line++) {
+      const yy = 28 + line * 6;
+      ctx.beginPath();
+      ctx.moveTo(contentLeft, yy);
+      ctx.lineTo(contentLeft + opts.contentWidth, yy);
+      ctx.stroke();
+    }
+  } else {
+    ctx.font = `10px ${opts.fontFamily}`;
+    ctx.fillStyle = 'rgb(100,100,100)';
+    ctx.fillText('The end of this journey.', contentLeft, LOGICAL_H_MM / 2);
+  }
+  ctx.restore();
+  return canvas.toDataURL('image/png');
+}
+
 export type PdfExportProgressCallback = (message: string) => void;
 
 export async function exportPdf(
@@ -255,279 +530,104 @@ export async function exportPdf(
   const PHOTO_SIZE = 36;
   const PHOTO_GAP = 4;
   const contentWidth = HALF_W_MM - 2 * margin;
+  const dateHeaderHeight = 14;
 
-  const doc = new jsPDF({
+  const completedChallenges = journey.challenges.filter(c => c.completed);
+  const groups = groupByDate(completedChallenges, journey);
+
+  report('Building booklet layout…');
+  const measureDoc = new jsPDF({
+    unit: 'mm',
+    format: [LOGICAL_W_MM, LOGICAL_H_MM],
+    hotfixes: ['px_scaling'],
+  });
+  addFontToDoc(measureDoc, fontBase64);
+  const logicalPages = buildLogicalPages(
+    journey,
+    groups,
+    measureDoc,
+    coverPhotoId,
+    margin,
+    marginTop,
+    marginBottom,
+    contentWidth,
+    dateHeaderHeight,
+  );
+  const N = logicalPages.length;
+
+  if (fontBase64) {
+    try {
+      const fontFace = new FontFace('NotoSansTC', `url(data:font/ttf;base64,${fontBase64})`);
+      await fontFace.load();
+      document.fonts.add(fontFace);
+    } catch (_) {}
+  }
+
+  report('Rendering pages…');
+  const pageImages: string[] = [];
+  const renderOpts = {
+    margin,
+    contentWidth,
+    marginTop,
+    marginBottom,
+    PHOTO_SIZE,
+    PHOTO_GAP,
+    coverPhotoId: null as string | null,
+    fontFamily: 'NotoSansTC',
+    report,
+    getPhoto,
+    blobToDataUrl,
+    getCachedCroppedSquareForPdf,
+    createRoundedImageDataUrl,
+  };
+  for (let p = 0; p < logicalPages.length; p++) {
+    report(`Rendering page ${p + 1}/${logicalPages.length}…`);
+    const coverId = logicalPages[p].type === 'cover' ? logicalPages[p].coverPhotoId : null;
+    pageImages.push(
+      await renderLogicalPageToCanvas(logicalPages[p], { ...renderOpts, coverPhotoId: coverId }),
+    );
+  }
+
+  // Left-bound booklet: for sheet k = 0..(N/4 - 1): front left=N-2k, right=1+2k; back left=2+2k, right=N-1-2k. Duplex, flip short edge, fold.
+  const DEBUG_BOOKLET_N8 = false; // set true to log mapping when N=8
+  if (DEBUG_BOOKLET_N8 && N === 8) {
+    const sheetCount = N / 4;
+    for (let k = 0; k < sheetCount; k++) {
+      const frontLeft = N - 2 * k;
+      const frontRight = 1 + 2 * k;
+      const backLeft = 2 + 2 * k;
+      const backRight = N - 1 - 2 * k;
+      console.log(
+        `Sheet ${k} front: left=page ${frontLeft} right=page ${frontRight} | Sheet ${k} back: left=page ${backLeft} right=page ${backRight}`,
+      );
+    }
+  }
+
+  const finalDoc = new jsPDF({
     orientation: 'landscape',
     unit: 'mm',
     format: [A4_W_MM, A4_H_MM],
     hotfixes: ['px_scaling'],
   });
-  addFontToDoc(doc, fontBase64);
-
-  type Half = 'left' | 'right';
-  let currentSide: Half = 'left';
-  let currentY = marginTop;
-
-  function getContentLeft(side: Half): number {
-    return side === 'left' ? margin : HALF_W_MM + margin;
+  const sheetCount = N / 4;
+  for (let k = 0; k < sheetCount; k++) {
+    finalDoc.addPage([A4_W_MM, A4_H_MM], 'landscape');
+    const frontLeftIdx = N - 1 - 2 * k;
+    const frontRightIdx = 2 * k;
+    finalDoc.addImage(pageImages[frontLeftIdx], 'PNG', 0, 0, LOGICAL_W_MM, LOGICAL_H_MM);
+    finalDoc.addImage(pageImages[frontRightIdx], 'PNG', LOGICAL_W_MM, 0, LOGICAL_W_MM, LOGICAL_H_MM);
   }
-
-  function beginLogicalHalf(side: Half): void {
-    currentSide = side;
-    currentY = marginTop;
+  for (let k = 0; k < sheetCount; k++) {
+    finalDoc.addPage([A4_W_MM, A4_H_MM], 'landscape');
+    const backLeftIdx = 2 * k + 1;
+    const backRightIdx = N - 2 - 2 * k;
+    finalDoc.addImage(pageImages[backLeftIdx], 'PNG', 0, 0, LOGICAL_W_MM, LOGICAL_H_MM);
+    finalDoc.addImage(pageImages[backRightIdx], 'PNG', LOGICAL_W_MM, 0, LOGICAL_W_MM, LOGICAL_H_MM);
   }
-
-  function ensureSpaceInHalf(requiredHeight: number): boolean {
-    if (currentY + requiredHeight <= PAGE_H_MM - marginBottom) return false;
-    newLogicalHalfOrNewSheet();
-    return true;
-  }
-
-  function newLogicalHalfOrNewSheet(): void {
-    if (currentSide === 'left') {
-      beginLogicalHalf('right');
-    } else {
-      doc.addPage([A4_W_MM, A4_H_MM], 'landscape');
-      doc.setFillColor(250, 247, 242);
-      doc.rect(0, 0, A4_W_MM, A4_H_MM, 'F');
-      beginLogicalHalf('left');
-    }
-  }
-
-  function drawPageBackgroundIfFirst(): void {
-    doc.setFillColor(250, 247, 242);
-    doc.rect(0, 0, A4_W_MM, A4_H_MM, 'F');
-  }
-
-  drawPageBackgroundIfFirst();
-  beginLogicalHalf('left');
-
-  // Front cover (logical page 1) in left half
-  const halfCenterX = getContentLeft('left') + contentWidth / 2;
-  const COVER_FRAME_W_MM = 80;
-  const COVER_FRAME_H_MM = 100; // 4:5 portrait
-  const COVER_TOP_MM = 20;
-  const COVER_LEFT_MM = getContentLeft('left') + (contentWidth - COVER_FRAME_W_MM) / 2;
-
-  let coverY = 50;
-  if (coverPhotoId) {
-    const blob = await getPhoto(coverPhotoId);
-    if (!blob) {
-      console.warn('PDF export: coverPhotoId exists but getPhoto returned null', coverPhotoId);
-    } else {
-      try {
-        const dataUrl = await blobToDataUrl(blob);
-        const coverDataUrl = await createRoundedImageDataUrl(dataUrl, 400, 500, 20);
-        const format = coverDataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-        doc.addImage(
-          coverDataUrl,
-          format,
-          COVER_LEFT_MM,
-          COVER_TOP_MM,
-          COVER_FRAME_W_MM,
-          COVER_FRAME_H_MM,
-        );
-        coverY = COVER_TOP_MM + COVER_FRAME_H_MM + 24;
-      } catch (e) {
-        console.warn('PDF export: cover image render failed', e);
-      }
-    }
-  }
-
-  let y = coverY;
-  doc.setFont(FONT_NAME_TC, 'normal');
-  doc.setTextColor(40);
-  doc.setFontSize(24);
-  doc.text(safeTitleForPDF(journey.title), halfCenterX, y, { align: 'center' });
-  y += 10;
-  doc.setFontSize(12);
-  doc.setTextColor(100);
-  doc.text(
-    `${journey.startDate}${journey.endDate ? ' – ' + journey.endDate : ''}`,
-    halfCenterX,
-    y,
-    { align: 'center' },
-  );
-  y += 12;
-  if (journey.buddyName) {
-    doc.setFontSize(10);
-    doc.text(`with ${journey.buddyName}`, halfCenterX, y, { align: 'center' });
-    y += 10;
-  }
-  y += 8;
-  doc.setFontSize(10);
-  doc.setTextColor(120);
-  doc.text(
-    'Three days in Taipei, forever in the camera roll.',
-    halfCenterX,
-    y,
-    { align: 'center' },
-  );
-
-  // Content (logical 2..N) — only export completed challenges, grouped by date ascending
-  const completedChallenges = journey.challenges.filter(c => c.completed);
-  const groups = groupByDate(completedChallenges, journey);
-  const totalPhotos = groups.reduce(
-    (sum, g) =>
-      sum + g.challenges.reduce((s, c) => s + Math.min(c.photoIds.length, 10), 0),
-    0,
-  );
-  let photosLoaded = 0;
-  let activeFontName: string | null = FONT_NAME_TC;
-
-  beginLogicalHalf('right');
-
-  for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
-    const group = groups[groupIndex];
-    if (group.challenges.length === 0) continue;
-
-    report(
-      `Building pages… (${group.label}${groups.length > 1 ? ` ${groupIndex + 1}/${groups.length}` : ''})`
-    );
-
-    let needDateHeader = true;
-    const dateHeaderHeight = 14;
-    for (const challenge of group.challenges) {
-      const blockHeight = estimateBlockHeight(doc, challenge, contentWidth, margin);
-      const contentLeft = getContentLeft(currentSide);
-
-      if (needDateHeader) {
-        if (ensureSpaceInHalf(dateHeaderHeight + blockHeight)) {
-          needDateHeader = true;
-        }
-        if (needDateHeader) {
-          if (activeFontName) doc.setFont(activeFontName, 'normal');
-          doc.setFontSize(11);
-          doc.setTextColor(80);
-          doc.text(group.label, contentLeft, currentY);
-          currentY += 4;
-          doc.setDrawColor(210);
-          doc.setLineWidth(0.2);
-          doc.line(contentLeft, currentY, contentLeft + contentWidth, currentY);
-          currentY += 6;
-          needDateHeader = false;
-        }
-      } else {
-        if (ensureSpaceInHalf(blockHeight)) {
-          if (activeFontName) doc.setFont(activeFontName, 'normal');
-          doc.setFontSize(9);
-          doc.setTextColor(100);
-          doc.text(group.label, contentLeft, currentY);
-          currentY += 6;
-        }
-      }
-
-      doc.setFontSize(13);
-      if (activeFontName) doc.setFont(activeFontName, 'normal');
-      doc.setTextColor(40);
-      doc.text(safeTitleForPDF(challenge.title), contentLeft, currentY);
-      currentY += 6;
-
-      doc.setFontSize(8);
-      doc.setTextColor(120);
-      const metaParts: string[] = [];
-      if (challenge.date) metaParts.push(challenge.date);
-      if (challenge.location) metaParts.push(challenge.location);
-      if (metaParts.length > 0) {
-        doc.text(metaParts.join(' • '), contentLeft, currentY);
-        currentY += 6;
-      } else {
-        currentY += 2;
-      }
-
-      if (challenge.caption) {
-        doc.setFontSize(11);
-        if (activeFontName) doc.setFont(activeFontName, 'normal');
-        doc.setTextColor(90);
-        const cap = sanitizeForPDF(challenge.caption || '');
-        const quoted = `“${cap}”`;
-        const lines = doc.splitTextToSize(quoted, contentWidth) as string[];
-        currentY += 2;
-        doc.text(lines, contentLeft, currentY);
-        currentY += lines.length * 6;
-      }
-
-      const photoIds = challenge.photoIds.slice(0, 10);
-      if (photoIds.length > 0) {
-        doc.setDrawColor(210);
-        doc.setLineWidth(0.2);
-        doc.line(contentLeft, currentY, contentLeft + contentWidth, currentY);
-        currentY += 4;
-
-        let blockStartY = currentY;
-        let photoStartInBlock = 0;
-        const halfContentLeft = contentLeft;
-
-        for (let i = 0; i < photoIds.length; i++) {
-          const row = Math.floor((i - photoStartInBlock) / 2);
-          let placeY = blockStartY + row * (PHOTO_SIZE + PHOTO_GAP);
-
-          if (placeY + PHOTO_SIZE > PAGE_H_MM - marginBottom) {
-            newLogicalHalfOrNewSheet();
-            const cl = getContentLeft(currentSide);
-            if (activeFontName) doc.setFont(activeFontName, 'normal');
-            doc.setFontSize(9);
-            doc.setTextColor(100);
-            doc.text(group.label, cl, currentY);
-            currentY += 6;
-            blockStartY = currentY;
-            photoStartInBlock = i;
-            placeY = blockStartY;
-          }
-
-          const pid = photoIds[i];
-          if (totalPhotos > 0) report(`Loading photos… (${photosLoaded + 1}/${totalPhotos})`);
-          const blob = await getPhoto(pid);
-          if (blob) {
-            try {
-              const originalDataUrl = await blobToDataUrl(blob);
-              const croppedDataUrl = await getCachedCroppedSquareForPdf(pid, originalDataUrl);
-              const format = croppedDataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-              const cl = getContentLeft(currentSide);
-              const px = cl + (i - photoStartInBlock) % 2 * (PHOTO_SIZE + PHOTO_GAP);
-              const py = blockStartY + Math.floor((i - photoStartInBlock) / 2) * (PHOTO_SIZE + PHOTO_GAP);
-              doc.addImage(croppedDataUrl, format, px, py, PHOTO_SIZE, PHOTO_SIZE);
-            } catch (e) {
-              console.error('PDF photo render failed', pid, e);
-            }
-          }
-          photosLoaded += 1;
-        }
-
-        const rowsInBlock = Math.ceil((photoIds.length - photoStartInBlock) / 2);
-        currentY = blockStartY + rowsInBlock * (PHOTO_SIZE + PHOTO_GAP) - PHOTO_GAP + PHOTO_SIZE + 8;
-      }
-
-      currentY += 6;
-    }
-  }
-
-  // Notes pages (optional): use next halves
-  const notesCount = 2;
-  for (let n = 0; n < notesCount; n++) {
-    newLogicalHalfOrNewSheet();
-    const contentLeft = getContentLeft(currentSide);
-    if (activeFontName) doc.setFont(activeFontName, 'normal');
-    doc.setFontSize(14);
-    doc.setTextColor(80);
-    doc.text('Notes', contentLeft, 20);
-    doc.setDrawColor(220);
-    doc.setLineWidth(0.15);
-    for (let line = 0; line < 30; line++) {
-      const y = 28 + line * 6;
-      doc.line(contentLeft, y, contentLeft + contentWidth, y);
-    }
-  }
-
-  // Back cover
-  newLogicalHalfOrNewSheet();
-  const backContentLeft = getContentLeft(currentSide);
-  if (activeFontName) doc.setFont(activeFontName, 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text('The end of this journey.', backContentLeft, PAGE_H_MM / 2);
+  finalDoc.deletePage(1);
 
   report('Finalizing…');
   const safeName = sanitizeForPDF(journey.title || 'journey') || 'journey';
-  doc.save(`${safeName}.pdf`);
+  finalDoc.save(`${safeName}.pdf`);
 }
+
