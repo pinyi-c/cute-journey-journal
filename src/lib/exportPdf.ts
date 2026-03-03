@@ -63,14 +63,10 @@ type ContentBlock = {
   challenge: JourneyChallenge;
 };
 
-/** Logical page order: cover, insideFrontCover, map, backOfMap, content..., tripHighlights, notes..., back. */
+/** Logical page: 1=cover, 2..=content, N=back. */
 type LogicalPage =
   | { type: 'cover'; journey: Journey; coverPhotoId: string | null }
-  | { type: 'insideFrontCover' }
-  | { type: 'map' }
-  | { type: 'backOfMap' }
   | { type: 'content'; blocks: ContentBlock[] }
-  | { type: 'tripHighlights' }
   | { type: 'notes' }
   | { type: 'back' };
 
@@ -168,7 +164,7 @@ function estimateBlockHeight(
   return h;
 }
 
-/** Build logical pages: cover, insideFrontCover, map, backOfMap, content (by date), tripHighlights, notes (padded), back. N is multiple of 4. */
+/** Build logical pages: cover, content (by date), notes (padded before back), back. N is multiple of 4. */
 function buildLogicalPages(
   journey: Journey,
   coverPhotoId: string | null,
@@ -183,9 +179,6 @@ function buildLogicalPages(
   const pages: LogicalPage[] = [];
 
   pages.push({ type: 'cover', journey, coverPhotoId });
-  pages.push({ type: 'insideFrontCover' });
-  pages.push({ type: 'map' });
-  pages.push({ type: 'backOfMap' });
 
   let currentBlocks: ContentBlock[] = [];
   let currentY = marginTop;
@@ -217,8 +210,6 @@ function buildLogicalPages(
     }
   }
   if (currentBlocks.length > 0) pages.push({ type: 'content', blocks: currentBlocks });
-
-  pages.push({ type: 'tripHighlights' });
 
   let notesCount = 2;
   const beforeNotes = pages.length + 1;
@@ -307,115 +298,6 @@ async function renderLogicalPage(
     doc.setFontSize(10);
     doc.setTextColor(120);
     doc.text('Three days in Taipei, forever in the camera roll.', halfCenterX, y, { align: 'center' });
-    return;
-  }
-
-  if (page.type === 'insideFrontCover' || page.type === 'backOfMap') {
-    return;
-  }
-
-  if (page.type === 'map') {
-    const mapTop = originY + marginTop;
-    const mapH = pageH - marginTop - marginBottom - 28;
-    const mapW = contentWidth;
-    const left = contentLeft;
-    const right = contentLeft + mapW;
-
-    doc.setDrawColor(200);
-    doc.setLineWidth(0.15);
-    doc.setFillColor(255, 252, 248);
-    doc.roundedRect(left, mapTop, mapW, mapH, 2, 2, 'FD');
-
-    if (fontName) doc.setFont(fontName, 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(130);
-    doc.text('Taipei MRT (simplified)', left + mapW / 2, mapTop + 6, { align: 'center' });
-
-    const lineColors: [number, number, number][] = [
-      [220, 80, 80],
-      [80, 140, 200],
-      [80, 160, 100],
-      [200, 160, 60],
-      [160, 100, 180],
-    ];
-    const stationR = 1.2;
-    const mrtY = mapTop + 14;
-    const mrtH = 48;
-    for (let i = 0; i < 5; i++) {
-      doc.setDrawColor(...lineColors[i]);
-      doc.setLineWidth(0.8);
-      const ly = mrtY + i * (mrtH / 5) + 4;
-      doc.line(left + 8, ly, right - 8, ly);
-      for (let s = 0; s <= 4; s++) {
-        const sx = left + 8 + (s / 4) * (mapW - 16);
-        doc.setFillColor(...lineColors[i]);
-        doc.circle(sx, ly, stationR, 'F');
-        doc.setDrawColor(180);
-        doc.circle(sx, ly, stationR, 'S');
-      }
-    }
-
-    const iconY = mrtY + mrtH + 10;
-    const labels: { x: number; label: string; color: [number, number, number] }[] = [
-      { x: left + 14, label: 'Food', color: [240, 120, 80] },
-      { x: left + 40, label: 'Night', color: [180, 100, 200] },
-      { x: left + 66, label: 'Temple', color: [200, 160, 60] },
-      { x: left + 92, label: 'Coffee', color: [120, 80, 40] },
-      { x: left + 118, label: 'Nature', color: [80, 140, 80] },
-    ];
-    for (const item of labels) {
-      doc.setFillColor(...item.color);
-      doc.circle(item.x, iconY, 2, 'F');
-      doc.roundedRect(item.x - 2, iconY + 3, 16, 3.5, 0.6, 0.6, 'F');
-      if (fontName) doc.setFont(fontName, 'normal');
-      doc.setFontSize(6);
-      doc.setTextColor(90);
-      doc.text(item.label, item.x + 6, iconY + 6, { align: 'center' });
-    }
-
-    const notesAreaTop = iconY + 16;
-    doc.setDrawColor(220);
-    doc.setLineWidth(0.12);
-    for (let row = 0; row < 5; row++) {
-      const ny = notesAreaTop + row * 5.5;
-      doc.line(left + 6, ny, right - 6, ny);
-    }
-    if (fontName) doc.setFont(fontName, 'normal');
-    doc.setFontSize(7);
-    doc.setTextColor(150);
-    doc.text('Notes', left + 6, notesAreaTop - 2);
-
-    return;
-  }
-
-  if (page.type === 'tripHighlights') {
-    if (fontName) doc.setFont(fontName, 'normal');
-    doc.setFontSize(16);
-    doc.setTextColor(50);
-    doc.text('來台灣玩印象最深刻的幾件事情', contentLeft + contentWidth / 2, originY + marginTop + 8, { align: 'center' });
-    doc.setDrawColor(210);
-    doc.setLineWidth(0.2);
-    doc.line(contentLeft, originY + marginTop + 14, contentLeft + contentWidth, originY + marginTop + 14);
-    y = originY + marginTop + 24;
-    for (let i = 1; i <= 5; i++) {
-      if (fontName) doc.setFont(fontName, 'normal');
-      doc.setFontSize(11);
-      doc.setTextColor(60);
-      doc.text(`${i}.`, contentLeft, y);
-      doc.setDrawColor(220);
-      doc.setLineWidth(0.15);
-      doc.line(contentLeft + 8, y + 4, contentLeft + contentWidth, y + 4);
-      y += 14;
-    }
-    if (fontName) doc.setFont(fontName, 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(120);
-    doc.text(
-      'The most unforgettable things about this trip to Taiwan.',
-      contentLeft + contentWidth / 2,
-      originY + pageH - marginBottom - 6,
-      { align: 'center' },
-    );
     return;
   }
 
