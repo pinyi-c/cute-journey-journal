@@ -624,12 +624,21 @@ export async function exportPdf(
     const backLeftPage = logicalPages[2 * k + 1];
     const backRightPage = logicalPages[N - 2 - 2 * k];
     if (flipMode === 'long') {
+      const jspdf = finalDoc as any;
+      if (typeof jspdf.saveGraphicsState === 'function') jspdf.saveGraphicsState();
+      const Matrix = jspdf.Matrix;
+      if (Matrix) {
+        const cx = A4_W_MM / 2;
+        const cy = A4_H_MM / 2;
+        jspdf.setCurrentTransformationMatrix(new Matrix(-1, 0, 0, -1, 2 * cx, 2 * cy));
+      }
       await saveRestore(() =>
         renderLogicalPage(finalDoc, backRightPage, 0, 0, HALF_W_MM, PAGE_H_MM, opts),
       );
       await saveRestore(() =>
         renderLogicalPage(finalDoc, backLeftPage, HALF_W_MM, 0, HALF_W_MM, PAGE_H_MM, opts),
       );
+      if (typeof jspdf.restoreGraphicsState === 'function') jspdf.restoreGraphicsState();
     } else {
       await saveRestore(() =>
         renderLogicalPage(finalDoc, backLeftPage, 0, 0, HALF_W_MM, PAGE_H_MM, opts),
@@ -642,5 +651,5 @@ export async function exportPdf(
 
   report('Finalizing…');
   const safeName = sanitizeForPDF(journey.title || 'journey') || 'journey';
-  finalDoc.save(`${safeName}.pdf`);
+  finalDoc.save(flipMode === 'long' ? `${safeName}_booklet_long.pdf` : `${safeName}.pdf`);
 }
