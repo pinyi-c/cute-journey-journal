@@ -489,8 +489,6 @@ async function createRoundedImageDataUrl(
 export type PdfExportProgressCallback = (message: string) => void;
 
 const DEBUG_BOOKLET_N8 = false;
-/** When true, log each PDF page number and whether long-edge back-side transform was applied. */
-const DEBUG_BOOKLET_PAGES = false;
 
 /** 'short' = flip on short edge (home/office); 'long' = flip on long edge (e.g. convenience store). Default 'short' keeps current output unchanged. */
 export async function exportPdf(
@@ -595,9 +593,6 @@ export async function exportPdf(
   };
 
   for (let k = 0; k < sheetCount; k++) {
-    const pdfFrontPageNo = 2 * k + 1;
-    const pdfBackPageNo = 2 * k + 2;
-
     if (k > 0) finalDoc.addPage([A4_W_MM, A4_H_MM], 'landscape');
     finalDoc.setFillColor(250, 247, 242);
     finalDoc.rect(0, 0, A4_W_MM, A4_H_MM, 'F');
@@ -623,30 +618,29 @@ export async function exportPdf(
         opts,
       ),
     );
-    if (DEBUG_BOOKLET_PAGES) console.log(`PDF page ${pdfFrontPageNo}: front, long back-side transform applied: false`);
-
     finalDoc.addPage([A4_W_MM, A4_H_MM], 'landscape');
     finalDoc.setFillColor(250, 247, 242);
     finalDoc.rect(0, 0, A4_W_MM, A4_H_MM, 'F');
     const backLeftPage = logicalPages[2 * k + 1];
     const backRightPage = logicalPages[N - 2 - 2 * k];
-
     if (flipMode === 'long') {
       const jspdf = finalDoc as any;
+      if (typeof jspdf.saveGraphicsState === 'function') jspdf.saveGraphicsState();
       const pageW = jspdf.internal?.pageSize?.getWidth?.() ?? A4_W_MM;
       const pageH = jspdf.internal?.pageSize?.getHeight?.() ?? A4_H_MM;
-      if (typeof jspdf.saveGraphicsState === 'function') jspdf.saveGraphicsState();
-      try {
-        const Matrix = jspdf.Matrix;
-        if (Matrix) {
-          jspdf.setCurrentTransformationMatrix(new Matrix(-1, 0, 0, -1, pageW, pageH));
-        }
-        await renderLogicalPage(finalDoc, backLeftPage, 0, 0, HALF_W_MM, PAGE_H_MM, opts);
-        await renderLogicalPage(finalDoc, backRightPage, HALF_W_MM, 0, HALF_W_MM, PAGE_H_MM, opts);
-      } finally {
-        if (typeof jspdf.restoreGraphicsState === 'function') jspdf.restoreGraphicsState();
+      const cx = pageW / 2;
+      const cy = pageH / 2;
+      const Matrix = jspdf.Matrix;
+      if (Matrix) {
+        jspdf.setCurrentTransformationMatrix(new Matrix(-1, 0, 0, -1, 2 * cx, 2 * cy));
       }
-      if (DEBUG_BOOKLET_PAGES) console.log(`PDF page ${pdfBackPageNo}: back, long back-side transform applied: true`);
+      await saveRestore(() =>
+        renderLogicalPage(finalDoc, backLeftPage, 0, 0, HALF_W_MM, PAGE_H_MM, opts),
+      );
+      await saveRestore(() =>
+        renderLogicalPage(finalDoc, backRightPage, HALF_W_MM, 0, HALF_W_MM, PAGE_H_MM, opts),
+      );
+      if (typeof jspdf.restoreGraphicsState === 'function') jspdf.restoreGraphicsState();
     } else {
       await saveRestore(() =>
         renderLogicalPage(finalDoc, backLeftPage, 0, 0, HALF_W_MM, PAGE_H_MM, opts),
@@ -654,7 +648,6 @@ export async function exportPdf(
       await saveRestore(() =>
         renderLogicalPage(finalDoc, backRightPage, HALF_W_MM, 0, HALF_W_MM, PAGE_H_MM, opts),
       );
-      if (DEBUG_BOOKLET_PAGES) console.log(`PDF page ${pdfBackPageNo}: back, long back-side transform applied: false`);
     }
   }
 
