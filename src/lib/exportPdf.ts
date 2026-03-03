@@ -490,10 +490,12 @@ export type PdfExportProgressCallback = (message: string) => void;
 
 const DEBUG_BOOKLET_N8 = false;
 
+/** 'short' = flip on short edge (home/office); 'long' = flip on long edge (e.g. convenience store). Default 'short' keeps current output unchanged. */
 export async function exportPdf(
   journey: Journey,
   onProgress?: PdfExportProgressCallback,
   coverPhotoIdParam?: string | null,
+  flipMode: 'short' | 'long' = 'short',
 ) {
   const report = (msg: string) => onProgress?.(msg);
 
@@ -619,28 +621,23 @@ export async function exportPdf(
     finalDoc.addPage([A4_W_MM, A4_H_MM], 'landscape');
     finalDoc.setFillColor(250, 247, 242);
     finalDoc.rect(0, 0, A4_W_MM, A4_H_MM, 'F');
-    await saveRestore(() =>
-      renderLogicalPage(
-        finalDoc,
-        logicalPages[2 * k + 1],
-        0,
-        0,
-        HALF_W_MM,
-        PAGE_H_MM,
-        opts,
-      ),
-    );
-    await saveRestore(() =>
-      renderLogicalPage(
-        finalDoc,
-        logicalPages[N - 2 - 2 * k],
-        HALF_W_MM,
-        0,
-        HALF_W_MM,
-        PAGE_H_MM,
-        opts,
-      ),
-    );
+    const backLeftPage = logicalPages[2 * k + 1];
+    const backRightPage = logicalPages[N - 2 - 2 * k];
+    if (flipMode === 'long') {
+      await saveRestore(() =>
+        renderLogicalPage(finalDoc, backRightPage, 0, 0, HALF_W_MM, PAGE_H_MM, opts),
+      );
+      await saveRestore(() =>
+        renderLogicalPage(finalDoc, backLeftPage, HALF_W_MM, 0, HALF_W_MM, PAGE_H_MM, opts),
+      );
+    } else {
+      await saveRestore(() =>
+        renderLogicalPage(finalDoc, backLeftPage, 0, 0, HALF_W_MM, PAGE_H_MM, opts),
+      );
+      await saveRestore(() =>
+        renderLogicalPage(finalDoc, backRightPage, HALF_W_MM, 0, HALF_W_MM, PAGE_H_MM, opts),
+      );
+    }
   }
 
   report('Finalizing…');
