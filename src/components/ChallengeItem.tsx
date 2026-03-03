@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Challenge, useJourney } from '@/lib/journeyContext';
 import { PhotoUpload } from './PhotoUpload';
-import { ChevronDown, ChevronUp, Trash2, Check, Pencil } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, Check, Pencil, GripVertical } from 'lucide-react';
 import { deletePhoto } from '@/lib/photoDb';
 import { INPUT_FIELD_CLASSES, TEXTAREA_FIELD_CLASSES } from '@/lib/constants';
 
@@ -9,9 +9,11 @@ interface Props {
   challenge: Challenge;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  /** When provided, attach to the drag handle so only the handle starts drag. */
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }
 
-export function ChallengeItem({ challenge, isExpanded, onToggleExpand }: Props) {
+export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandleProps }: Props) {
   const { updateChallenge, deleteChallenge } = useJourney();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(challenge.title);
@@ -44,6 +46,15 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand }: Props) 
         className="flex items-center gap-3 p-3 cursor-pointer"
         onClick={() => !editing && onToggleExpand()}
       >
+        {dragHandleProps && (
+          <div
+            {...dragHandleProps}
+            className="flex items-center justify-center flex-shrink-0 touch-manipulation text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing p-1 -m-1 rounded"
+            aria-label="Drag to reorder"
+          >
+            <GripVertical size={18} />
+          </div>
+        )}
         <button
           onClick={(e) => {
             e.stopPropagation();

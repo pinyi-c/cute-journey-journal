@@ -30,7 +30,8 @@ interface JourneyContextType {
   updateChallenge: (id: string, updates: Partial<Challenge>) => void;
   addChallenge: (title: string) => void;
   deleteChallenge: (id: string) => void;
-   saveNow: () => void;
+  reorderChallenges: (challenges: Challenge[]) => void;
+  saveNow: () => void;
   resetJourney: () => void;
 }
 
@@ -138,6 +139,13 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const reorderChallenges = useCallback((challenges: Challenge[]) => {
+    setJourney(prev => {
+      if (!prev) return prev;
+      return { ...prev, challenges };
+    });
+  }, []);
+
   const resetJourney = useCallback(() => {
     setJourney(null);
   }, []);
@@ -161,6 +169,7 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
         updateChallenge,
         addChallenge,
         deleteChallenge,
+        reorderChallenges,
         saveNow,
         resetJourney,
       }}
