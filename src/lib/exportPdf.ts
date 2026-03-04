@@ -631,13 +631,6 @@ export async function exportPdf(
       const rightIdx = N - 2 - 2 * k;
       console.log('[LONG BACK]', { sheet: k, leftIdx, rightIdx, N });
 
-      finalDoc.setDrawColor(255, 0, 0);
-      finalDoc.setLineWidth(0.5);
-      finalDoc.rect(1, 1, pageW - 2, pageH - 2);
-      finalDoc.setFontSize(10);
-      finalDoc.setTextColor(0, 0, 0);
-      finalDoc.text('LONG BACK DEBUG', 5, 10);
-
       if (typeof jspdf.saveGraphicsState === 'function') jspdf.saveGraphicsState();
       try {
         const Matrix = jspdf.Matrix;
