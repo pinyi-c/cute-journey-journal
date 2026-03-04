@@ -12,8 +12,7 @@ import { setPendingCrop } from '@/lib/cropStore';
 export default function Summary() {
   const navigate = useNavigate();
   const { journey, updateJourneyDetails } = useJourney();
-  const [exportingPdfShort, setExportingPdfShort] = useState(false);
-  const [exportingPdfLong, setExportingPdfLong] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [pdfProgressMessage, setPdfProgressMessage] = useState('');
   const [collageUrls, setCollageUrls] = useState<string[]>([]);
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
@@ -64,23 +63,20 @@ export default function Summary() {
   const total = journey.challenges.length;
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-  const handlePdfExport = async (flipMode: 'short' | 'long') => {
+  const handlePdfExport = async () => {
     if (!journey) return;
-    if (flipMode === 'short') setExportingPdfShort(true);
-    else setExportingPdfLong(true);
+    setExportingPdf(true);
     setPdfProgressMessage('Preparing…');
     try {
       await exportPdf(
         journey,
         (message) => setPdfProgressMessage(message),
         journey.coverPhotoId ?? undefined,
-        flipMode,
       );
     } catch (e) {
       console.error('PDF export failed:', e);
     } finally {
-      if (flipMode === 'short') setExportingPdfShort(false);
-      else setExportingPdfLong(false);
+      setExportingPdf(false);
       setPdfProgressMessage('');
     }
   };
@@ -165,24 +161,14 @@ export default function Summary() {
 
       <div className="mx-4 space-y-3">
         <h2 className="font-bold">Export Your Journey</h2>
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={() => handlePdfExport('short')}
-            disabled={exportingPdfShort || exportingPdfLong || completed === 0}
-            className="w-full bg-primary text-primary-foreground rounded-2xl py-3.5 font-semibold flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm active:scale-[0.98] transition-transform"
-          >
-            {exportingPdfShort ? <Loader2 size={18} className="animate-spin" /> : <FileDown size={18} />}
-            Export Booklet (Short-edge flip)
-          </button>
-          <button
-            onClick={() => handlePdfExport('long')}
-            disabled={exportingPdfShort || exportingPdfLong || completed === 0}
-            className="w-full bg-primary/90 text-primary-foreground rounded-2xl py-3.5 font-semibold flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm active:scale-[0.98] transition-transform"
-          >
-            {exportingPdfLong ? <Loader2 size={18} className="animate-spin" /> : <FileDown size={18} />}
-            Export Booklet (Long-edge flip)
-          </button>
-        </div>
+        <button
+          onClick={handlePdfExport}
+          disabled={exportingPdf || completed === 0}
+          className="w-full bg-primary text-primary-foreground rounded-2xl py-3.5 font-semibold flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm active:scale-[0.98] transition-transform"
+        >
+          {exportingPdf ? <Loader2 size={18} className="animate-spin" /> : <FileDown size={18} />}
+          Export PDF Booklet
+        </button>
         {completed === 0 && (
           <p className="text-xs text-muted-foreground text-center">
             Complete at least one challenge to export your journey.
@@ -192,7 +178,7 @@ export default function Summary() {
 
       <PhotoPreviewModal url={previewUrl} onClose={() => setPreviewUrl(null)} />
 
-      {(exportingPdfShort || exportingPdfLong) && (
+      {exportingPdf && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
           aria-modal="true"
