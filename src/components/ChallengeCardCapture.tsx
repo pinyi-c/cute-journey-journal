@@ -31,7 +31,7 @@ function getGridColumns(n: number): number {
 
 export const ChallengeCardCapture = forwardRef<HTMLDivElement, ChallengeCardCaptureProps>(
   function ChallengeCardCapture(
-    { title, date, location, caption, imageDataUrls, footer = '✨ My Cute Journey' },
+    { title, date, location, caption, imageDataUrls, footer = 'TAIPEI LOGBOOK' },
     ref
   ) {
   const photos = imageDataUrls.slice(0, MAX_PHOTOS);
@@ -118,6 +118,8 @@ export const ChallengeCardCapture = forwardRef<HTMLDivElement, ChallengeCardCapt
             fontSize: 20,
             color: '#999',
             textAlign: 'center',
+            letterSpacing: '0.08em',
+            whiteSpace: 'nowrap',
           }}
         >
           {footer}
