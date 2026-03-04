@@ -625,22 +625,30 @@ export async function exportPdf(
     const backRightPage = logicalPages[N - 2 - 2 * k];
     if (flipMode === 'long') {
       const jspdf = finalDoc as any;
-      if (typeof jspdf.saveGraphicsState === 'function') jspdf.saveGraphicsState();
       const pageW = jspdf.internal?.pageSize?.getWidth?.() ?? A4_W_MM;
       const pageH = jspdf.internal?.pageSize?.getHeight?.() ?? A4_H_MM;
-      const cx = pageW / 2;
-      const cy = pageH / 2;
-      const Matrix = jspdf.Matrix;
-      if (Matrix) {
-        jspdf.setCurrentTransformationMatrix(new Matrix(-1, 0, 0, -1, 2 * cx, 2 * cy));
+      const leftIdx = 2 * k + 1;
+      const rightIdx = N - 2 - 2 * k;
+      console.log('[LONG BACK]', { sheet: k, leftIdx, rightIdx, N });
+
+      finalDoc.setDrawColor(255, 0, 0);
+      finalDoc.setLineWidth(0.5);
+      finalDoc.rect(1, 1, pageW - 2, pageH - 2);
+      finalDoc.setFontSize(10);
+      finalDoc.setTextColor(0, 0, 0);
+      finalDoc.text('LONG BACK DEBUG', 5, 10);
+
+      if (typeof jspdf.saveGraphicsState === 'function') jspdf.saveGraphicsState();
+      try {
+        const Matrix = jspdf.Matrix;
+        if (Matrix) {
+          jspdf.setCurrentTransformationMatrix(new Matrix(-1, 0, 0, -1, pageW, pageH));
+        }
+        await renderLogicalPage(finalDoc, backLeftPage, 0, 0, HALF_W_MM, PAGE_H_MM, opts);
+        await renderLogicalPage(finalDoc, backRightPage, HALF_W_MM, 0, HALF_W_MM, PAGE_H_MM, opts);
+      } finally {
+        if (typeof jspdf.restoreGraphicsState === 'function') jspdf.restoreGraphicsState();
       }
-      await saveRestore(() =>
-        renderLogicalPage(finalDoc, backLeftPage, 0, 0, HALF_W_MM, PAGE_H_MM, opts),
-      );
-      await saveRestore(() =>
-        renderLogicalPage(finalDoc, backRightPage, HALF_W_MM, 0, HALF_W_MM, PAGE_H_MM, opts),
-      );
-      if (typeof jspdf.restoreGraphicsState === 'function') jspdf.restoreGraphicsState();
     } else {
       await saveRestore(() =>
         renderLogicalPage(finalDoc, backLeftPage, 0, 0, HALF_W_MM, PAGE_H_MM, opts),
