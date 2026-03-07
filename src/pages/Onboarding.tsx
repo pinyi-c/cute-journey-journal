@@ -52,7 +52,7 @@ export default function Onboarding() {
   if (journey && !showNewForm && !isEditing) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 max-w-md mx-auto">
-        <h1 className="text-2xl font-extrabold mb-2 text-center">Welcome back to Taiwan Logbook! 📓</h1>
+        <h1 className="text-2xl font-extrabold mb-2 text-center">Welcome back to Taiwan Logbook!</h1>
         <p className="text-slate-600 mb-6 text-center">
           Your logbook: <strong className="text-foreground">{journey.title}</strong>
         </p>
