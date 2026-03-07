@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { useJourney } from '@/lib/journeyContext';
 import { ChallengeItem } from '@/components/ChallengeItem';
 import { BottomNav } from '@/components/BottomNav';
@@ -9,7 +10,7 @@ import mascotUrl from '@/assets/mascot.svg';
 import { Plus } from 'lucide-react';
 
 export default function Challenges() {
-  const { journey, addChallenge, saveNow } = useJourney();
+  const { journey, addChallenge, reorderChallenges, saveNow } = useJourney();
   const [newTitle, setNewTitle] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
@@ -34,7 +35,22 @@ export default function Challenges() {
     setSaveStatus('Saved just now');
   };
 
-  const displayedChallenges = sortChallenges(journey.challenges, sortBy);
+  const onDragEnd = (result: DropResult) => {
+    if (result.destination == null) return;
+    const from = result.source.index;
+    const to = result.destination.index;
+    if (from === to) return;
+    const list = journey.challenges;
+    const reordered = [...list];
+    const [removed] = reordered.splice(from, 1);
+    reordered.splice(to, 0, removed);
+    reorderChallenges(reordered);
+  };
+
+  const isManualSort = sortBy === 'manual';
+  const displayedChallenges = isManualSort
+    ? journey.challenges
+    : sortChallenges(journey.challenges, sortBy);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -109,22 +125,62 @@ export default function Challenges() {
 
       {/* Challenge list */}
       <div className="px-4 space-y-3">
-        {displayedChallenges.map((c) => (
-          <div
-            key={c.id}
-            ref={(el) => {
-              if (el) itemRefs.current[c.id] = el;
-            }}
-          >
-            <ChallengeItem
-              challenge={c}
-              isExpanded={expandedChallengeId === c.id}
-              onToggleExpand={() =>
-                setExpandedChallengeId(prev => (prev === c.id ? null : c.id))
-              }
-            />
-          </div>
-        ))}
+        {isManualSort ? (
+          <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId="challenges">
+              {(droppableProvided) => (
+                <div
+                  ref={droppableProvided.innerRef}
+                  {...droppableProvided.droppableProps}
+                  className="space-y-3"
+                >
+                  {displayedChallenges.map((c, index) => (
+                    <Draggable key={c.id} draggableId={c.id} index={index}>
+                      {(provided) => (
+                        <div
+                          ref={(el) => {
+                            provided.innerRef(el);
+                            if (el) itemRefs.current[c.id] = el;
+                          }}
+                          {...provided.draggableProps}
+                        >
+                          <ChallengeItem
+                            challenge={c}
+                            isExpanded={expandedChallengeId === c.id}
+                            onToggleExpand={() =>
+                              setExpandedChallengeId(prev => (prev === c.id ? null : c.id))
+                            }
+                            dragHandleProps={provided.dragHandleProps}
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {droppableProvided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
+        ) : (
+          <>
+            {displayedChallenges.map((c) => (
+              <div
+                key={c.id}
+                ref={(el) => {
+                  if (el) itemRefs.current[c.id] = el;
+                }}
+              >
+                <ChallengeItem
+                  challenge={c}
+                  isExpanded={expandedChallengeId === c.id}
+                  onToggleExpand={() =>
+                    setExpandedChallengeId(prev => (prev === c.id ? null : c.id))
+                  }
+                />
+              </div>
+            ))}
+          </>
+        )}
       </div>
 
       {/* Add challenge */}

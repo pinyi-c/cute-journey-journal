@@ -1,12 +1,11 @@
 import type { Challenge } from '@/lib/journeyContext';
 
-export type SortOption = 'date-desc' | 'date-asc' | 'lastmod-desc' | 'lastmod-asc';
+export type SortOption = 'manual' | 'date-desc' | 'date-asc';
 
 export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'manual', label: 'Manual (drag order)' },
   { value: 'date-desc', label: 'Date (new → old)' },
   { value: 'date-asc', label: 'Date (old → new)' },
-  { value: 'lastmod-desc', label: 'Last modified (new → old)' },
-  { value: 'lastmod-asc', label: 'Last modified (old → new)' },
 ];
 
 const DEFAULT_SORT: SortOption = 'date-desc';
@@ -15,17 +14,10 @@ export function getDefaultSort(): SortOption {
   return DEFAULT_SORT;
 }
 
-function getLastModified(c: Challenge): number {
-  if (c.lastModified != null) return c.lastModified;
-  if (c.date) {
-    const t = new Date(c.date).getTime();
-    return Number.isNaN(t) ? 0 : t;
-  }
-  return 0;
-}
-
-/** Returns a new sorted array. Does not mutate. */
+/** Returns a new sorted array for date modes; returns same array for manual. Does not mutate stored order. */
 export function sortChallenges(challenges: Challenge[], sortBy: SortOption): Challenge[] {
+  if (sortBy === 'manual') return challenges;
+
   const sorted = [...challenges];
 
   if (sortBy === 'date-desc') {
@@ -49,16 +41,6 @@ export function sortChallenges(challenges: Challenge[], sortBy: SortOption): Cha
       if (!bd) return 1;
       return ad.localeCompare(bd);
     });
-    return sorted;
-  }
-
-  if (sortBy === 'lastmod-desc') {
-    sorted.sort((a, b) => getLastModified(b) - getLastModified(a));
-    return sorted;
-  }
-
-  if (sortBy === 'lastmod-asc') {
-    sorted.sort((a, b) => getLastModified(a) - getLastModified(b));
     return sorted;
   }
 
