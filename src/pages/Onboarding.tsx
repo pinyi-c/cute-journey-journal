@@ -48,9 +48,7 @@ export default function Onboarding() {
   const isEditing = Boolean(location.state && (location.state as { edit?: boolean }).edit && journey);
   const [showNewForm, setShowNewForm] = useState(false);
   const [showNewJourneyConfirm, setShowNewJourneyConfirm] = useState(false);
-  const [title, setTitle] = useState(
-    journey ? journey.title : "Erina's Taipei Adventure Logbook",
-  );
+  const [title, setTitle] = useState(journey ? journey.title : '');
   const [startDate, setStartDate] = useState(journey ? journey.startDate : '');
   const [endDate, setEndDate] = useState(journey ? journey.endDate : '');
   const [buddyName, setBuddyName] = useState(journey ? journey.buddyName : '');
@@ -118,7 +116,7 @@ export default function Onboarding() {
   }
 
   const handleStart = () => {
-    if (!startDate) return;
+    if (!startDate || !title.trim()) return;
     if (journey && isEditing) {
       updateJourneyDetails({ title, startDate, endDate, buddyName, theme, ownerName });
     } else {
@@ -249,7 +247,7 @@ export default function Onboarding() {
 
       <button
         onClick={handleStart}
-        disabled={!startDate}
+        disabled={!startDate || !title.trim()}
         className="mt-8 w-full bg-primary text-primary-foreground rounded-2xl py-4 font-bold text-lg disabled:opacity-50 shadow-lg active:scale-[0.98] transition-transform"
       >
         {t('onboarding.openLogbook')}

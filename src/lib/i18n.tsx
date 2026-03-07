@@ -56,7 +56,7 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     'subtitle.snapshots': '總覽＋可下載小卡',
     'subtitle.exportPdf': '匯出 PDF 手札',
     'onboarding.openLogbook': '打開手札',
-    'onboarding.whoIsThisFor': '這本手札是誰的？',
+    'onboarding.whoIsThisFor': '你的名字是？',
     'onboarding.add': '新增',
     'onboarding.addName': '新增姓名',
     'onboarding.save': '儲存',
