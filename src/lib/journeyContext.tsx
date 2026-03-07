@@ -57,9 +57,9 @@ export function useJourney() {
 }
 
 const DEFAULT_CHALLENGES = [
-  'First day vibe ✨',
-  'Something I ate 🍜',
-  'Dihua Street',
+  'Dadaocheng day 🏮',
+  'Beef noodle check ✅',
+  'Night market bites',
 ];
 
 function makeChallenge(title: string): Challenge {
