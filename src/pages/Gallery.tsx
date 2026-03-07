@@ -104,15 +104,15 @@ export default function Gallery() {
 
         <div className="grid grid-cols-3 gap-2 mb-4">
           <div className="rounded-xl border border-border bg-primary/5 py-2.5 px-3 text-center">
-            <div className="text-lg font-bold text-primary">{entriesCount}</div>
+            <div className="text-lg font-bold text-slate-900">{entriesCount}</div>
             <div className="text-[11px] text-slate-600 font-medium">Entries</div>
           </div>
           <div className="rounded-xl border border-border bg-primary/5 py-2.5 px-3 text-center">
-            <div className="text-lg font-bold text-primary">{uniqueDates}</div>
+            <div className="text-lg font-bold text-slate-900">{uniqueDates}</div>
             <div className="text-[11px] text-slate-600 font-medium">Days</div>
           </div>
           <div className="rounded-xl border border-border bg-primary/5 py-2.5 px-3 text-center">
-            <div className="text-lg font-bold text-primary">{photosCount}</div>
+            <div className="text-lg font-bold text-slate-900">{photosCount}</div>
             <div className="text-[11px] text-slate-600 font-medium">Photos</div>
           </div>
         </div>
