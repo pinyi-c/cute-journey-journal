@@ -24,7 +24,7 @@ export default function Onboarding() {
   const [showNewForm, setShowNewForm] = useState(false);
   const [showNewJourneyConfirm, setShowNewJourneyConfirm] = useState(false);
   const [title, setTitle] = useState(
-    journey ? journey.title : "Erina's Taipei Adventure Journal",
+    journey ? journey.title : "Erina's Taipei Adventure Logbook",
   );
   const [startDate, setStartDate] = useState(journey ? journey.startDate : '');
   const [endDate, setEndDate] = useState(journey ? journey.endDate : '');
@@ -40,30 +40,30 @@ export default function Onboarding() {
   if (journey && !showNewForm && !isEditing) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 max-w-md mx-auto">
-        <img src={mascotUrl} alt="Journey mascot" className="w-24 h-24 mb-4" />
+        <img src={mascotUrl} alt="Logbook mascot" className="w-24 h-24 mb-4" />
         <h1 className="text-2xl font-extrabold mb-2 text-center">Welcome back! 🎉</h1>
         <p className="text-slate-600 mb-6 text-center">
-          Your journey: <strong className="text-foreground">{journey.title}</strong>
+          Your logbook: <strong className="text-foreground">{journey.title}</strong>
         </p>
         <button
           onClick={() => navigate('/challenges')}
           className="w-full bg-primary text-primary-foreground rounded-2xl py-3.5 font-bold text-lg shadow-lg active:scale-[0.98] transition-transform"
         >
-          Continue Journey ✨
+          Continue logbook
         </button>
         <button
           onClick={() => setShowNewJourneyConfirm(true)}
           className="mt-4 text-sm text-slate-600 underline"
         >
-          Start a new journey
+          Start a new logbook
         </button>
 
         <AlertDialog open={showNewJourneyConfirm} onOpenChange={setShowNewJourneyConfirm}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Start a new journey?</AlertDialogTitle>
+              <AlertDialogTitle>Start a new logbook?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will delete your current journey and all saved photos. This cannot be undone.
+                This will delete your current logbook and all saved photos. This cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

@@ -333,7 +333,7 @@ export async function exportIgStory(journey: Journey) {
     // Headline label strips for title
     ctx.font = '900 52px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     ctx.fillStyle = palette.labelText;
-    const titleLines = wrapText(ctx, journey.title || 'Taipei Journey', W - SAFE_X * 2);
+    const titleLines = wrapText(ctx, journey.title || 'Taipei Logbook', W - SAFE_X * 2);
     let titleY = SAFE_TOP + 40;
     titleLines.slice(0, 3).forEach(line => {
       const text = line.toUpperCase();

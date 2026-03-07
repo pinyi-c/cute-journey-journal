@@ -414,7 +414,7 @@ async function renderLogicalPage(
   if (page.type === 'back') {
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text('The end of this journey.', contentLeft, originY + pageH / 2);
+    doc.text('The end of this logbook.', contentLeft, originY + pageH / 2);
     return;
   }
 }
@@ -661,6 +661,6 @@ export async function exportPdf(
   }
 
   report('Finalizing…');
-  const safeName = sanitizeForPDF(journey.title || 'journey') || 'journey';
+  const safeName = sanitizeForPDF(journey.title || 'logbook') || 'logbook';
   finalDoc.save(`${safeName}.pdf`);
 }

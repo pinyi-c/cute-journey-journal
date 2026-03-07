@@ -3,7 +3,7 @@ import type { Challenge } from '@/lib/journeyContext';
 export type SortOption = 'manual' | 'date-desc' | 'date-asc';
 
 export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: 'manual', label: 'Same as Journal (custom order)' },
+  { value: 'manual', label: 'Same as Logbook (custom order)' },
   { value: 'date-desc', label: 'Date (new → old)' },
   { value: 'date-asc', label: 'Date (old → new)' },
 ];

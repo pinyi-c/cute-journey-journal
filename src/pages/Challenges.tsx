@@ -92,7 +92,7 @@ export default function Challenges() {
             onClick={() => navigate('/', { state: { edit: true } })}
             className="text-xs font-semibold text-primary underline underline-offset-2"
           >
-            Edit Journey
+            Edit logbook
           </button>
         </div>
       </div>
@@ -195,7 +195,7 @@ export default function Challenges() {
             <input
               value={newTitle}
               onChange={e => setNewTitle(e.target.value)}
-              placeholder="New challenge title..."
+              placeholder="New entry title..."
               className="flex-1 p-3 rounded-2xl bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               autoFocus
               onKeyDown={e => e.key === 'Enter' && handleAdd()}
@@ -218,7 +218,7 @@ export default function Challenges() {
             onClick={() => setShowAdd(true)}
             className="w-full py-3 rounded-2xl border-2 border-dashed border-primary/40 text-slate-700 font-semibold flex items-center justify-center gap-2 hover:border-primary/60 hover:text-slate-800 transition-colors active:scale-[0.98]"
           >
-            <Plus size={18} /> Add Challenge
+            <Plus size={18} /> Add entry
           </button>
         )}
       </div>

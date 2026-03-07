@@ -99,7 +99,7 @@ export default function Gallery() {
   return (
     <div className="min-h-screen pb-24 max-w-md mx-auto">
       <div className="p-4">
-        <h1 className="text-xl font-extrabold mb-1">Memories</h1>
+        <h1 className="text-xl font-extrabold mb-1">Snapshots</h1>
         <p className="text-xs text-slate-600 mb-4">Your trip at a glance + shareable cards</p>
 
         <div className="grid grid-cols-3 gap-2 mb-4">
@@ -188,7 +188,7 @@ export default function Gallery() {
         ))}
         {journey.challenges.length === 0 && (
           <p className="text-center text-slate-600 py-8">
-            No entries yet. Add entries in Journal to see them here.
+            No entries yet. Add entries in Logbook to see them here.
           </p>
         )}
       </div>

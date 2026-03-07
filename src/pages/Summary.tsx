@@ -97,7 +97,7 @@ export default function Summary() {
   return (
     <div className="min-h-screen pb-24 max-w-md mx-auto">
       <div className="p-4">
-        <h1 className="text-xl font-extrabold">Booklet</h1>
+        <h1 className="text-xl font-extrabold">Export PDF</h1>
         <p className="text-xs text-slate-600 mt-0.5">Export PDF booklet</p>
       </div>
 
@@ -165,7 +165,7 @@ export default function Summary() {
       </div>
 
       <div className="mx-4 space-y-3">
-        <h2 className="font-bold">Booklet settings</h2>
+        <h2 className="font-bold">Export settings</h2>
         <div className="rounded-xl border border-border bg-card p-4 space-y-4">
           <div>
             <label className="text-xs font-medium text-slate-600 block mb-1">Entry order</label>
@@ -174,7 +174,7 @@ export default function Summary() {
               onChange={(e) => setEntryOrder(e.target.value as EntryOrderOption)}
               className="w-full text-sm rounded-lg border border-border bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value="same-as-journal">Same as Journal (current view)</option>
+              <option value="same-as-journal">Same as Logbook (current view)</option>
               <option value="date-asc">Date: Old → New</option>
               <option value="date-desc">Date: New → Old</option>
             </select>
@@ -201,7 +201,7 @@ export default function Summary() {
                   onChange={() => setCoverTitleOption('journey')}
                   className="rounded-full border-border"
                 />
-                <span className="text-sm">Use journey title</span>
+                <span className="text-sm">Use logbook title</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -227,18 +227,18 @@ export default function Summary() {
           </div>
         </div>
 
-        <h2 className="font-bold pt-2">Export Your Journey</h2>
+        <h2 className="font-bold pt-2">Export PDF</h2>
         <button
           onClick={handlePdfExport}
           disabled={exportingPdf || total === 0}
           className="w-full bg-primary text-primary-foreground rounded-2xl py-3.5 font-semibold flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm active:scale-[0.98] transition-transform"
         >
           {exportingPdf ? <Loader2 size={18} className="animate-spin" /> : <FileDown size={18} />}
-          Export PDF Booklet
+          Export PDF
         </button>
         {total === 0 && (
           <p className="text-xs text-slate-600 text-center">
-            Add at least one entry to export your booklet.
+            Add at least one entry to export your PDF.
           </p>
         )}
       </div>

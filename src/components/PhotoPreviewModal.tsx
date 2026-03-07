@@ -21,7 +21,7 @@ export function PhotoPreviewModal({ url, onClose }: Props) {
     return {
       photoId,
       journeyTitle: journey.title,
-      challengeTitle: challenge?.title ?? 'challenge',
+      challengeTitle: challenge?.title ?? 'entry',
       index,
     };
   }, [url, journey]);
