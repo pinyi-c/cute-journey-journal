@@ -20,10 +20,6 @@ export default function Challenges() {
 
   if (!journey) return <Navigate to="/" replace />;
 
-  const completed = journey.challenges.filter(c => c.completed).length;
-  const total = journey.challenges.length;
-  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-
   const handleAdd = () => {
     if (newTitle.trim()) {
       addChallenge(newTitle.trim());
@@ -77,9 +73,6 @@ export default function Challenges() {
       <div className="flex items-start justify-between p-4 sticky top-0 bg-background/80 backdrop-blur-md z-10">
         <div className="min-w-0 flex-1">
           <h1 className="text-lg font-extrabold truncate">{journey.title}</h1>
-          <p className="text-xs text-muted-foreground">
-            {completed}/{total} completed
-          </p>
           <p className="text-xs text-muted-foreground mt-0.5">Add/edit entries with photos</p>
         </div>
         <div className="flex flex-col items-center gap-2 flex-shrink-0 ml-3">
@@ -91,17 +84,6 @@ export default function Challenges() {
             Edit Journey
           </button>
         </div>
-      </div>
-
-      {/* Progress bar */}
-      <div className="px-4 mb-4">
-        <div className="h-3 bg-secondary rounded-full overflow-hidden">
-          <div
-            className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        <p className="text-xs text-muted-foreground mt-1 text-right">{pct}%</p>
       </div>
 
       {/* Manual save */}

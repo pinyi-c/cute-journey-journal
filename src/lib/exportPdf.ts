@@ -523,8 +523,7 @@ export async function exportPdf(
   const PHOTO_GAP = 4;
   const contentWidth = HALF_W_MM - 2 * margin;
 
-  const completedChallenges = journey.challenges.filter(c => c.completed);
-  const groups = groupByDate(completedChallenges, journey);
+  const groups = groupByDate(journey.challenges, journey);
   report('Building pages…');
   const measureDoc = new jsPDF({
     orientation: 'landscape',

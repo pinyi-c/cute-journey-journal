@@ -9,8 +9,6 @@ import { PhotoPreviewModal } from '@/components/PhotoPreviewModal';
 import { ChallengeCardCapture, CARD_CAPTURE_BG } from '@/components/ChallengeCardCapture';
 import { Download } from 'lucide-react';
 
-type Filter = 'all' | 'completed' | 'pending';
-
 function sanitizeFilename(s: string): string {
   return s
     .trim()
@@ -22,7 +20,6 @@ function sanitizeFilename(s: string): string {
 
 export default function Gallery() {
   const { journey } = useJourney();
-  const [filter, setFilter] = useState<Filter>('all');
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [capturingCard, setCapturingCard] = useState<{
@@ -90,43 +87,17 @@ export default function Gallery() {
 
   if (!journey) return <Navigate to="/" replace />;
 
-  const filtered = journey.challenges.filter(c => {
-    if (filter === 'completed') return c.completed;
-    if (filter === 'pending') return !c.completed;
-    return true;
-  });
-
   return (
     <div className="min-h-screen pb-24 max-w-md mx-auto">
       <div className="p-4">
         <h1 className="text-xl font-extrabold mb-1">Memories</h1>
         <p className="text-xs text-muted-foreground mb-4">Your trip at a glance + shareable cards</p>
-        <div className="flex gap-2 mb-4">
-          {(['all', 'completed', 'pending'] as Filter[]).map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-1.5 rounded-full text-sm font-semibold capitalize transition-colors ${
-                filter === f
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary text-secondary-foreground'
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
       </div>
 
       <div className="px-4 space-y-4">
-        {filtered.map(c => (
+        {journey.challenges.map(c => (
           <div key={c.id} className="bg-card rounded-2xl border border-border p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span
-                className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                  c.completed ? 'bg-primary' : 'bg-muted-foreground/30'
-                }`}
-              />
+            <div className="mb-2">
               <h3 className="font-bold text-sm">{c.title}</h3>
             </div>
             {c.caption && (
@@ -176,9 +147,9 @@ export default function Gallery() {
             </div>
           </div>
         ))}
-        {filtered.length === 0 && (
+        {journey.challenges.length === 0 && (
           <p className="text-center text-muted-foreground py-8">
-            No challenges found for this filter 🤔
+            No entries yet. Add entries in Journal to see them here.
           </p>
         )}
       </div>

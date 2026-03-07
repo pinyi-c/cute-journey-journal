@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Challenge, useJourney } from '@/lib/journeyContext';
 import { PhotoUpload } from './PhotoUpload';
-import { ChevronDown, ChevronUp, Trash2, Check, Pencil, GripVertical } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, Pencil, GripVertical } from 'lucide-react';
 import { deletePhoto } from '@/lib/photoDb';
 import { INPUT_FIELD_CLASSES, TEXTAREA_FIELD_CLASSES } from '@/lib/constants';
 
@@ -36,11 +36,7 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
   };
 
   return (
-    <div
-      className={`rounded-2xl border bg-card shadow-sm transition-all ${
-        challenge.completed ? 'border-primary/30 ring-1 ring-primary/20' : 'border-border'
-      }`}
-    >
+    <div className="rounded-2xl border border-border bg-card shadow-sm transition-all">
       {/* Header */}
       <div
         className="flex items-center gap-3 p-3 cursor-pointer"
@@ -55,19 +51,6 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
             <GripVertical size={18} />
           </div>
         )}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            updateChallenge(challenge.id, { completed: !challenge.completed });
-          }}
-          className={`w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-            challenge.completed
-              ? 'bg-primary border-primary'
-              : 'border-muted-foreground/40 hover:border-primary/60'
-          }`}
-        >
-          {challenge.completed && <Check size={14} className="text-primary-foreground" />}
-        </button>
 
         {editing ? (
           <input
@@ -81,11 +64,7 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
           />
         ) : (
           <div className="relative flex-1 min-w-0">
-            <span
-              className={`block pr-8 font-semibold text-sm select-none truncate ${
-                challenge.completed ? 'line-through text-muted-foreground' : ''
-              }`}
-            >
+            <span className="block pr-8 font-semibold text-sm select-none truncate">
               {challenge.title}
             </span>
             <button

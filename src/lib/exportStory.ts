@@ -299,12 +299,10 @@ export async function exportIgStory(journey: Journey) {
     : 2;
 
   const palette = getStoryPalette(journey.theme);
-  const completedChallenges = journey.challenges.filter(c => c.completed);
-  const completed = completedChallenges.length;
   const total = journey.challenges.length;
 
-  // IG Story: curated subset – first 6 photos from completed challenges
-  const allPhotoIds = completedChallenges.flatMap(c => c.photoIds);
+  // Curated subset – first 6 photos from all entries
+  const allPhotoIds = journey.challenges.flatMap(c => c.photoIds);
   const photoDataUrls: string[] = [];
   for (const pid of allPhotoIds.slice(0, 6)) {
     const blob = await getPhoto(pid);
@@ -448,8 +446,8 @@ export async function exportIgStory(journey: Journey) {
       { smallCaps: true },
     );
 
-    // Big percent badge
-    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+    // Big percent badge (show 100% when there are entries)
+    const percent = total > 0 ? 100 : 0;
     ctx.font = '900 90px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     const percentText = `${percent}%`;
     const ptw = ctx.measureText(percentText).width;
@@ -474,7 +472,7 @@ export async function exportIgStory(journey: Journey) {
     ctx.font = '600 24px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     ctx.fillStyle = palette.labelText + 'CC';
     ctx.fillText(
-      `${completed} / ${total} CHECKS`,
+      `${total} ${total === 1 ? 'entry' : 'entries'}`,
       W / 2,
       badgeY + badgeH / 2 + 40,
     );
@@ -595,15 +593,15 @@ export async function exportIgStory(journey: Journey) {
       { smallCaps: true },
     );
 
-    const topCompleted = completedChallenges.slice(0, 3);
+    const topEntries = journey.challenges.slice(0, 3);
     const stackCenterX = W / 2;
     const baseY = SAFE_TOP + 120;
     const polaroidW = 420;
     const polaroidH = 520;
 
     // Stack 2–3 polaroids with slight rotations
-    for (let i = 0; i < topCompleted.length; i++) {
-      const c = topCompleted[i];
+    for (let i = 0; i < topEntries.length; i++) {
+      const c = topEntries[i];
       const angle = i === 0 ? -0.09 : i === 1 ? 0.06 : -0.03;
       const offsetX = i === 0 ? -120 : i === 1 ? 80 : -40;
       const offsetY = i === 2 ? 90 : i * 40;
@@ -665,12 +663,12 @@ export async function exportIgStory(journey: Journey) {
       { smallCaps: true },
     );
 
-    if (completedChallenges.length === 0) {
+    if (journey.challenges.length === 0) {
       ctx.textAlign = 'center';
       ctx.font = '600 30px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.fillStyle = palette.labelText + 'CC';
       ctx.fillText(
-        'Complete challenges to see your cutest moments here!',
+        'Add entries with photos to see your moments here!',
         W / 2,
         H / 2,
       );

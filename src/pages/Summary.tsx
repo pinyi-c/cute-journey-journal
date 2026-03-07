@@ -59,9 +59,7 @@ export default function Summary() {
 
   if (!journey) return <Navigate to="/" replace />;
 
-  const completed = journey.challenges.filter(c => c.completed).length;
   const total = journey.challenges.length;
-  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   const handlePdfExport = async () => {
     if (!journey) return;
@@ -89,14 +87,6 @@ export default function Summary() {
           <p className="text-xs text-muted-foreground mt-0.5">Export PDF booklet</p>
         </div>
         <img src={mascotUrl} alt="Mascot" className="w-10 h-10" />
-      </div>
-
-      <div className="mx-4 bg-card rounded-2xl border border-border p-6 text-center mb-6 shadow-sm">
-        <div className="text-5xl font-extrabold text-primary mb-2">{pct}%</div>
-        <p className="text-muted-foreground text-sm">{completed} of {total} challenges completed</p>
-        <div className="mt-4 h-3 bg-secondary rounded-full overflow-hidden">
-          <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
-        </div>
       </div>
 
       {collageUrls.length > 0 && (
@@ -166,15 +156,15 @@ export default function Summary() {
         <h2 className="font-bold">Export Your Journey</h2>
         <button
           onClick={handlePdfExport}
-          disabled={exportingPdf || completed === 0}
+          disabled={exportingPdf || total === 0}
           className="w-full bg-primary text-primary-foreground rounded-2xl py-3.5 font-semibold flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm active:scale-[0.98] transition-transform"
         >
           {exportingPdf ? <Loader2 size={18} className="animate-spin" /> : <FileDown size={18} />}
           Export PDF Booklet
         </button>
-        {completed === 0 && (
+        {total === 0 && (
           <p className="text-xs text-muted-foreground text-center">
-            Complete at least one challenge to export your journey.
+            Add at least one entry to export your booklet.
           </p>
         )}
       </div>
