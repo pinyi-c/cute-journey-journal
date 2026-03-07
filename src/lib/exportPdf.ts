@@ -1,4 +1,4 @@
-import { Journey } from './journeyContext';
+import type { Journey, ThemeId } from './journeyContext';
 import { getPhoto, blobToDataUrl } from './photoDb';
 import { cropImageToDataURL } from './imageUtils';
 // We embed Noto Sans TC as a Unicode (Identity-H) font for zh/ja.
@@ -236,6 +236,8 @@ type RenderLogicalPageOpts = {
   PHOTO_GAP: number;
   fontName: string | null;
   report: PdfExportProgressCallback;
+  backgroundColorRgb?: { r: number; g: number; b: number };
+  coverTitleOverride?: string;
 };
 
 /** Draw one logical page in mm. Local y only; never addPage; draw only in [originX, originX+halfW]. */
@@ -248,16 +250,18 @@ async function renderLogicalPage(
   pageH: number,
   opts: RenderLogicalPageOpts,
 ): Promise<void> {
-  const { margin, marginTop, marginBottom, contentWidth, PHOTO_SIZE, PHOTO_GAP, fontName, report } = opts;
+  const { margin, marginTop, marginBottom, contentWidth, PHOTO_SIZE, PHOTO_GAP, fontName, report, backgroundColorRgb, coverTitleOverride } = opts;
+  const bg = backgroundColorRgb ?? DEFAULT_PDF_BACKGROUND;
   let y = originY + marginTop;
   const contentLeft = originX + margin;
 
-  doc.setFillColor(250, 247, 242);
+  doc.setFillColor(bg.r, bg.g, bg.b);
   doc.rect(originX, originY, halfW, pageH, 'F');
   if (fontName) doc.setFont(fontName, 'normal');
 
   if (page.type === 'cover') {
     const halfCenterX = contentLeft + contentWidth / 2;
+    const coverTitle = coverTitleOverride != null && coverTitleOverride !== '' ? coverTitleOverride : page.journey.title;
     const COVER_FRAME_W_MM = 80;
     const COVER_FRAME_H_MM = 100;
     const COVER_TOP_MM = originY + 20;
@@ -280,7 +284,7 @@ async function renderLogicalPage(
     y = coverY;
     doc.setFontSize(24);
     doc.setTextColor(40);
-    doc.text(safeTitleForPDF(page.journey.title), halfCenterX, y, { align: 'center' });
+    doc.text(safeTitleForPDF(coverTitle), halfCenterX, y, { align: 'center' });
     y += 10;
     doc.setFontSize(12);
     doc.setTextColor(100);
@@ -488,12 +492,33 @@ async function createRoundedImageDataUrl(
 
 export type PdfExportProgressCallback = (message: string) => void;
 
+/** Theme secondary (paper) color as RGB for PDF background. */
+const THEME_SECONDARY_RGB: Record<ThemeId, { r: number; g: number; b: number }> = {
+  'oat-latte': { r: 246, g: 241, b: 232 },
+  'sage-mist': { r: 239, g: 243, b: 238 },
+  'clay-blush': { r: 247, g: 238, b: 233 },
+  'sand-sea': { r: 238, g: 243, b: 244 },
+  'mocha-stone': { r: 242, g: 240, b: 236 },
+};
+
+const DEFAULT_PDF_BACKGROUND = { r: 250, g: 247, b: 242 };
+
+export type PdfExportOptions = {
+  /** Ordered entries for booklet (default: journey.challenges). */
+  orderedChallenges?: JourneyChallenge[];
+  /** Use theme secondary as page background (default: false = use default cream). */
+  useThemeBackground?: boolean;
+  /** Override cover title (default: journey.title). */
+  coverTitle?: string;
+};
+
 const DEBUG_BOOKLET_N8 = false;
 
 export async function exportPdf(
   journey: Journey,
   onProgress?: PdfExportProgressCallback,
   coverPhotoIdParam?: string | null,
+  options?: PdfExportOptions,
 ) {
   const report = (msg: string) => onProgress?.(msg);
 
@@ -501,6 +526,10 @@ export async function exportPdf(
   const jsPDF = jspdfMod.jsPDF;
 
   const coverPhotoId = coverPhotoIdParam ?? journey.coverPhotoId ?? null;
+  const challengesToUse = options?.orderedChallenges ?? journey.challenges;
+  const themeId = journey.theme && THEME_SECONDARY_RGB[journey.theme as ThemeId] ? (journey.theme as ThemeId) : 'oat-latte';
+  const backgroundColorRgb = options?.useThemeBackground ? THEME_SECONDARY_RGB[themeId] : DEFAULT_PDF_BACKGROUND;
+  const coverTitleOverride = options?.coverTitle;
 
   report('Preparing fonts…');
   let fontBase64: string | null = null;
@@ -523,7 +552,7 @@ export async function exportPdf(
   const PHOTO_GAP = 4;
   const contentWidth = HALF_W_MM - 2 * margin;
 
-  const groups = groupByDate(journey.challenges, journey);
+  const groups = groupByDate(challengesToUse, journey);
   report('Building pages…');
   const measureDoc = new jsPDF({
     orientation: 'landscape',
@@ -576,6 +605,8 @@ export async function exportPdf(
     PHOTO_GAP,
     fontName: activeFontName,
     report,
+    backgroundColorRgb,
+    coverTitleOverride,
   };
 
   const saveRestore = (fn: () => Promise<void>) => {
@@ -589,9 +620,10 @@ export async function exportPdf(
     return fn();
   };
 
+  const bg = backgroundColorRgb;
   for (let k = 0; k < sheetCount; k++) {
     if (k > 0) finalDoc.addPage([A4_W_MM, A4_H_MM], 'landscape');
-    finalDoc.setFillColor(250, 247, 242);
+    finalDoc.setFillColor(bg.r, bg.g, bg.b);
     finalDoc.rect(0, 0, A4_W_MM, A4_H_MM, 'F');
     await saveRestore(() =>
       renderLogicalPage(
@@ -616,7 +648,7 @@ export async function exportPdf(
       ),
     );
     finalDoc.addPage([A4_W_MM, A4_H_MM], 'landscape');
-    finalDoc.setFillColor(250, 247, 242);
+    finalDoc.setFillColor(bg.r, bg.g, bg.b);
     finalDoc.rect(0, 0, A4_W_MM, A4_H_MM, 'F');
     const backLeftPage = logicalPages[2 * k + 1];
     const backRightPage = logicalPages[N - 2 - 2 * k];

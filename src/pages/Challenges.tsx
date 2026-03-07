@@ -10,7 +10,7 @@ import mascotUrl from '@/assets/mascot.svg';
 import { Plus } from 'lucide-react';
 
 export default function Challenges() {
-  const { journey, addChallenge, reorderChallenges, saveNow } = useJourney();
+  const { journey, addChallenge, reorderChallenges, saveNow, setLastJournalSortMode } = useJourney();
   const [newTitle, setNewTitle] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
@@ -51,6 +51,10 @@ export default function Challenges() {
   const displayedChallenges = isManualSort
     ? journey.challenges
     : sortChallenges(journey.challenges, sortBy);
+
+  useEffect(() => {
+    setLastJournalSortMode(sortBy);
+  }, [sortBy, setLastJournalSortMode]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);

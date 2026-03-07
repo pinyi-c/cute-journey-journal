@@ -29,8 +29,13 @@ export interface Journey {
   coverPhotoId?: string | null;
 }
 
+/** Journal sort mode; used for "Same as Journal" in PDF export. */
+export type JournalSortMode = 'manual' | 'date-desc' | 'date-asc';
+
 interface JourneyContextType {
   journey: Journey | null;
+  lastJournalSortMode: JournalSortMode;
+  setLastJournalSortMode: (mode: JournalSortMode) => void;
   createJourney: (data: Omit<Journey, 'challenges'>) => void;
   updateJourneyDetails: (data: Partial<Omit<Journey, 'challenges'>>) => void;
   updateChallenge: (id: string, updates: Partial<Challenge>) => void;
@@ -70,6 +75,7 @@ function makeChallenge(title: string): Challenge {
 }
 
 export function JourneyProvider({ children }: { children: ReactNode }) {
+  const [lastJournalSortMode, setLastJournalSortMode] = useState<JournalSortMode>('manual');
   const [journey, setJourney] = useState<Journey | null>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -165,6 +171,8 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
     <JourneyContext.Provider
       value={{
         journey,
+        lastJournalSortMode,
+        setLastJournalSortMode,
         createJourney,
         updateJourneyDetails,
         updateChallenge,

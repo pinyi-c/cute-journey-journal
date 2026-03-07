@@ -3,21 +3,29 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { useJourney } from '@/lib/journeyContext';
 import { BottomNav } from '@/components/BottomNav';
 import { exportPdf } from '@/lib/exportPdf';
+import { sortChallenges } from '@/lib/sortChallenges';
+import type { SortOption } from '@/lib/sortChallenges';
 import { getPhotoUrl, deletePhoto } from '@/lib/photoDb';
 import { PhotoPreviewModal } from '@/components/PhotoPreviewModal';
-import mascotUrl from '@/assets/mascot.svg';
 import { FileDown, Loader2, Plus, X } from 'lucide-react';
 import { setPendingCrop } from '@/lib/cropStore';
 
+type EntryOrderOption = 'same-as-journal' | 'date-asc' | 'date-desc';
+type CoverTitleOption = 'journey' | 'custom';
+
 export default function Summary() {
   const navigate = useNavigate();
-  const { journey, updateJourneyDetails } = useJourney();
+  const { journey, updateJourneyDetails, lastJournalSortMode } = useJourney();
   const [exportingPdf, setExportingPdf] = useState(false);
   const [pdfProgressMessage, setPdfProgressMessage] = useState('');
   const [collageUrls, setCollageUrls] = useState<string[]>([]);
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const [entryOrder, setEntryOrder] = useState<EntryOrderOption>('same-as-journal');
+  const [backgroundTheme, setBackgroundTheme] = useState(true);
+  const [coverTitleOption, setCoverTitleOption] = useState<CoverTitleOption>('journey');
+  const [customCoverTitle, setCustomCoverTitle] = useState('');
 
   useEffect(() => {
     if (!journey) return;
@@ -66,10 +74,17 @@ export default function Summary() {
     setExportingPdf(true);
     setPdfProgressMessage('Preparing…');
     try {
+      const sortForOrder: SortOption = entryOrder === 'same-as-journal' ? lastJournalSortMode : entryOrder === 'date-asc' ? 'date-asc' : 'date-desc';
+      const orderedChallenges = sortChallenges(journey.challenges, sortForOrder);
       await exportPdf(
         journey,
         (message) => setPdfProgressMessage(message),
         journey.coverPhotoId ?? undefined,
+        {
+          orderedChallenges,
+          useThemeBackground: backgroundTheme,
+          coverTitle: coverTitleOption === 'custom' ? (customCoverTitle.trim().slice(0, 40) || undefined) : undefined,
+        },
       );
     } catch (e) {
       console.error('PDF export failed:', e);
@@ -81,12 +96,9 @@ export default function Summary() {
 
   return (
     <div className="min-h-screen pb-24 max-w-md mx-auto">
-      <div className="p-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-extrabold">Booklet</h1>
-          <p className="text-xs text-slate-600 mt-0.5">Export PDF booklet</p>
-        </div>
-        <img src={mascotUrl} alt="Mascot" className="w-10 h-10" />
+      <div className="p-4">
+        <h1 className="text-xl font-extrabold">Booklet</h1>
+        <p className="text-xs text-slate-600 mt-0.5">Export PDF booklet</p>
       </div>
 
       {collageUrls.length > 0 && (
@@ -153,7 +165,69 @@ export default function Summary() {
       </div>
 
       <div className="mx-4 space-y-3">
-        <h2 className="font-bold">Export Your Journey</h2>
+        <h2 className="font-bold">Booklet settings</h2>
+        <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+          <div>
+            <label className="text-xs font-medium text-slate-600 block mb-1">Entry order</label>
+            <select
+              value={entryOrder}
+              onChange={(e) => setEntryOrder(e.target.value as EntryOrderOption)}
+              className="w-full text-sm rounded-lg border border-border bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="same-as-journal">Same as Journal (current view)</option>
+              <option value="date-asc">Date: Old → New</option>
+              <option value="date-desc">Date: New → Old</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-slate-600 block mb-1">Background</label>
+            <select
+              value={backgroundTheme ? 'theme' : 'default'}
+              onChange={(e) => setBackgroundTheme(e.target.value === 'theme')}
+              className="w-full text-sm rounded-lg border border-border bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="theme">Follow current theme</option>
+              <option value="default">Default cream</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-slate-600 block mb-2">Cover title</label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="coverTitle"
+                  checked={coverTitleOption === 'journey'}
+                  onChange={() => setCoverTitleOption('journey')}
+                  className="rounded-full border-border"
+                />
+                <span className="text-sm">Use journey title</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="coverTitle"
+                  checked={coverTitleOption === 'custom'}
+                  onChange={() => setCoverTitleOption('custom')}
+                  className="rounded-full border-border"
+                />
+                <span className="text-sm">Custom title</span>
+              </label>
+              {coverTitleOption === 'custom' && (
+                <input
+                  type="text"
+                  value={customCoverTitle}
+                  onChange={(e) => setCustomCoverTitle(e.target.value.slice(0, 40))}
+                  placeholder="Enter cover title (max 40 chars)"
+                  maxLength={40}
+                  className="w-full mt-1 text-sm rounded-lg border border-border bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        <h2 className="font-bold pt-2">Export Your Journey</h2>
         <button
           onClick={handlePdfExport}
           disabled={exportingPdf || total === 0}
