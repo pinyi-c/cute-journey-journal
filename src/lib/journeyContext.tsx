@@ -1,6 +1,12 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 
-export type ThemeId = 'pink' | 'mint' | 'lavender' | 'sky' | 'peach';
+export type ThemeId = 'oat-latte' | 'sage-mist' | 'clay-blush' | 'sand-sea' | 'mocha-stone';
+
+const THEME_IDS: ThemeId[] = ['oat-latte', 'sage-mist', 'clay-blush', 'sand-sea', 'mocha-stone'];
+
+function normalizeTheme(theme: string): ThemeId {
+  return THEME_IDS.includes(theme as ThemeId) ? (theme as ThemeId) : 'oat-latte';
+}
 
 export interface Challenge {
   id: string;
@@ -67,7 +73,9 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
   const [journey, setJourney] = useState<Journey | null>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : null;
+      if (!saved) return null;
+      const data = JSON.parse(saved) as Journey;
+      return { ...data, theme: normalizeTheme(data.theme) };
     } catch {
       return null;
     }

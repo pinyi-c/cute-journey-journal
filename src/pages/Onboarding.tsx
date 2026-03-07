@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useJourney, ThemeId } from '@/lib/journeyContext';
 import { ThemePicker } from '@/components/ThemePicker';
@@ -29,7 +29,12 @@ export default function Onboarding() {
   const [startDate, setStartDate] = useState(journey ? journey.startDate : '');
   const [endDate, setEndDate] = useState(journey ? journey.endDate : '');
   const [buddyName, setBuddyName] = useState(journey ? journey.buddyName : '');
-  const [theme, setTheme] = useState<ThemeId>(journey ? journey.theme : 'pink');
+  const [theme, setTheme] = useState<ThemeId>(journey ? journey.theme : 'oat-latte');
+
+  // Live preview: apply selected theme to DOM so background, inputs, picker, and button update instantly
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   // If journey exists and user hasn't clicked "new", show continue screen
   if (journey && !showNewForm && !isEditing) {

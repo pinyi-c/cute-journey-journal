@@ -37,48 +37,48 @@ type StoryPalette = {
 
 function getStoryPalette(theme: string): StoryPalette {
   const base: Record<string, StoryPalette> = {
-    pink: {
-      bg: '#FFE8F0',
-      blobs: ['#FFB3C6', '#FCE1FF', '#FFE5B4'],
-      accent: '#FF4B91',
+    'oat-latte': {
+      bg: '#F6F1E8',
+      blobs: ['#D8CBB8', '#E8DFD0', '#F0E6D8'],
+      accent: '#A67C52',
       labelBg: '#FFFFFF',
-      labelText: '#40202E',
-      dark: '#262334',
+      labelText: '#3D3228',
+      dark: '#2A231C',
     },
-    mint: {
-      bg: '#E3FFF4',
-      blobs: ['#9BF3C8', '#C8F5FF', '#FFF6B3'],
-      accent: '#00B894',
+    'sage-mist': {
+      bg: '#EFF3EE',
+      blobs: ['#B7C2B0', '#D4DCD0', '#E2E8DF'],
+      accent: '#6F8A6B',
       labelBg: '#FFFFFF',
-      labelText: '#093327',
-      dark: '#12302A',
+      labelText: '#2A3328',
+      dark: '#1E261C',
     },
-    lavender: {
-      bg: '#F2ECFF',
-      blobs: ['#CBB2FF', '#FFE5FF', '#FFE8C2'],
-      accent: '#9B5DE5',
+    'clay-blush': {
+      bg: '#F7EEE9',
+      blobs: ['#D9B6A3', '#E8CFC2', '#EFDFD6'],
+      accent: '#B46A55',
       labelBg: '#FFFFFF',
-      labelText: '#2C2147',
-      dark: '#241B3A',
+      labelText: '#3D2C26',
+      dark: '#2A1F1B',
     },
-    sky: {
-      bg: '#E6F4FF',
-      blobs: ['#A5D8FF', '#FFDEEB', '#FFE066'],
-      accent: '#228BE6',
+    'sand-sea': {
+      bg: '#EEF3F4',
+      blobs: ['#B7C7C9', '#D1DEDF', '#E2EBEC'],
+      accent: '#5D7E86',
       labelBg: '#FFFFFF',
-      labelText: '#0B2940',
-      dark: '#052136',
+      labelText: '#2A3335',
+      dark: '#1C2426',
     },
-    peach: {
-      bg: '#FFF1E6',
-      blobs: ['#FFC9A9', '#FFD6E0', '#FFF6C2'],
-      accent: '#FF6B6B',
+    'mocha-stone': {
+      bg: '#F2F0EC',
+      blobs: ['#C7C0B7', '#DDD8D1', '#E8E5E0'],
+      accent: '#6B625A',
       labelBg: '#FFFFFF',
-      labelText: '#402015',
-      dark: '#331A10',
+      labelText: '#2E2B27',
+      dark: '#211F1C',
     },
   };
-  return base[theme] || base.pink;
+  return base[theme] || base['oat-latte'];
 }
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
