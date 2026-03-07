@@ -1,9 +1,22 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Challenge, useJourney } from '@/lib/journeyContext';
 import { PhotoUpload } from './PhotoUpload';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ChevronDown, ChevronUp, Trash2, Pencil, GripVertical } from 'lucide-react';
 import { deletePhoto } from '@/lib/photoDb';
 import { INPUT_FIELD_CLASSES, TEXTAREA_FIELD_CLASSES } from '@/lib/constants';
+
+const REVEAL_WIDTH = 72;
+const SWIPE_THRESHOLD = 10;
+const VERTICAL_THRESHOLD = 24;
 
 interface Props {
   challenge: Challenge;
@@ -17,7 +30,11 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
   const { updateChallenge, deleteChallenge } = useJourney();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(challenge.title);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const isSwipingRef = useRef(false);
+  const slideRef = useRef<HTMLDivElement>(null);
 
   const handleTitleSave = () => {
     setEditing(false);
@@ -28,29 +45,114 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
+    setShowDeleteDialog(false);
+    setSwipeOffset(0);
     for (const pid of challenge.photoIds) {
       await deletePhoto(pid);
     }
     deleteChallenge(challenge.id);
-  };
+  }, [challenge.id, challenge.photoIds, deleteChallenge]);
+
+  const onTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if ((e.target as HTMLElement).closest('[data-drag-handle]')) return;
+      const t = e.touches[0];
+      touchStartRef.current = { x: t.clientX, y: t.clientY };
+      isSwipingRef.current = false;
+    },
+    [],
+  );
+  const onTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!touchStartRef.current) return;
+      const t = e.touches[0];
+      const dx = t.clientX - touchStartRef.current.x;
+      const dy = t.clientY - touchStartRef.current.y;
+      if (!isSwipingRef.current) {
+        if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dy) < VERTICAL_THRESHOLD) {
+          isSwipingRef.current = true;
+        } else if (Math.abs(dy) > VERTICAL_THRESHOLD) {
+          touchStartRef.current = null;
+          return;
+        }
+      }
+      if (isSwipingRef.current) {
+        e.preventDefault();
+        const next = dx > 0 ? 0 : Math.max(-REVEAL_WIDTH, dx);
+        setSwipeOffset(next);
+      }
+    },
+    [],
+  );
+  const onTouchEnd = useCallback(() => {
+    if (!touchStartRef.current) return;
+    if (isSwipingRef.current) {
+      setSwipeOffset((prev) => (prev < -REVEAL_WIDTH / 2 ? -REVEAL_WIDTH : 0));
+    }
+    touchStartRef.current = null;
+    isSwipingRef.current = false;
+  }, []);
+
+  // Non-passive touchmove so we can preventDefault when swiping (Mobile Safari)
+  useEffect(() => {
+    const el = slideRef.current;
+    if (!el) return;
+    const onMove = (e: TouchEvent) => {
+      if (!touchStartRef.current || !isSwipingRef.current) return;
+      e.preventDefault();
+    };
+    el.addEventListener('touchmove', onMove, { passive: false });
+    return () => el.removeEventListener('touchmove', onMove);
+  }, []);
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-sm transition-all">
-      {/* Header */}
-      <div
-        className="flex items-center gap-3 p-3 cursor-pointer"
-        onClick={() => !editing && onToggleExpand()}
-      >
-        {dragHandleProps && (
-          <div
-            {...dragHandleProps}
-            className="flex items-center justify-center flex-shrink-0 touch-manipulation text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing p-1 -m-1 rounded"
-            aria-label="Drag to reorder"
+    <>
+      <div className="relative overflow-hidden rounded-2xl">
+        {/* Swipe-reveal trash area */}
+        <div
+          className="absolute right-0 top-0 bottom-0 z-0 flex items-center justify-center rounded-r-2xl bg-destructive/10"
+          style={{ width: REVEAL_WIDTH }}
+          aria-hidden
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setShowDeleteDialog(true);
+              setSwipeOffset(0);
+            }}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/20 text-destructive touch-manipulation active:bg-destructive/30"
+            aria-label="Delete entry"
           >
-            <GripVertical size={18} />
-          </div>
-        )}
+            <Trash2 size={20} />
+          </button>
+        </div>
+
+        {/* Sliding card content */}
+        <div
+          ref={slideRef}
+          className="relative z-10 rounded-2xl border border-border bg-card shadow-sm transition-transform duration-150 ease-out"
+          style={{ transform: `translateX(${swipeOffset}px)` }}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onTouchCancel={onTouchEnd}
+        >
+          {/* Header */}
+          <div
+            className="flex items-center gap-3 p-3 cursor-pointer"
+            onClick={() => !editing && onToggleExpand()}
+          >
+            {dragHandleProps && (
+              <div
+                {...dragHandleProps}
+                data-drag-handle
+                className="flex items-center justify-center flex-shrink-0 touch-manipulation text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing p-1 -m-1 rounded"
+                aria-label="Drag to reorder"
+              >
+                <GripVertical size={18} />
+              </div>
+            )}
 
         {editing ? (
           <input
@@ -139,35 +241,27 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
               challengeId={challenge.id}
             />
           </div>
-
-          <div className="pt-2 border-t border-border">
-            {confirmDelete ? (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-destructive">Delete this challenge?</span>
-                <button
-                  onClick={handleDelete}
-                  className="text-xs bg-destructive text-destructive-foreground px-3 py-1 rounded-full font-semibold"
-                >
-                  Yes
-                </button>
-                <button
-                  onClick={() => setConfirmDelete(false)}
-                  className="text-xs bg-muted text-muted-foreground px-3 py-1 rounded-full"
-                >
-                  No
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setConfirmDelete(true)}
-                className="text-xs text-destructive/70 flex items-center gap-1 hover:text-destructive transition-colors"
-              >
-                <Trash2 size={12} /> Delete challenge
-              </button>
-            )}
-          </div>
         </div>
       )}
-    </div>
+        </div>
+      </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleDelete()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
