@@ -10,6 +10,8 @@ export interface Challenge {
   date: string;
   location: string;
   photoIds: string[];
+  /** Timestamp (ms) when entry was last edited; used for "Last modified" sort. */
+  lastModified?: number;
 }
 
 export interface Journey {
@@ -67,14 +69,27 @@ function makeChallenge(title: string): Challenge {
     date: '',
     location: '',
     photoIds: [],
+    lastModified: Date.now(),
   };
+}
+
+function ensureLastModified(c: Challenge): Challenge {
+  if (c.lastModified != null) return c;
+  const fallback = c.date ? new Date(c.date).getTime() : Date.now();
+  return { ...c, lastModified: Number.isNaN(fallback) ? Date.now() : fallback };
+}
+
+function migrateChallenges(challenges: Challenge[]): Challenge[] {
+  return challenges.map(ensureLastModified);
 }
 
 export function JourneyProvider({ children }: { children: ReactNode }) {
   const [journey, setJourney] = useState<Journey | null>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : null;
+      if (!saved) return null;
+      const data = JSON.parse(saved) as Journey;
+      return { ...data, challenges: migrateChallenges(data.challenges) };
     } catch {
       return null;
     }
@@ -112,9 +127,12 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
   const updateChallenge = useCallback((id: string, updates: Partial<Challenge>) => {
     setJourney(prev => {
       if (!prev) return prev;
+      const now = Date.now();
       return {
         ...prev,
-        challenges: prev.challenges.map(c => c.id === id ? { ...c, ...updates } : c),
+        challenges: prev.challenges.map(c =>
+          c.id === id ? { ...c, ...updates, lastModified: now } : c,
+        ),
       };
     });
   }, []);

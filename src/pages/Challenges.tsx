@@ -1,19 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { useJourney } from '@/lib/journeyContext';
 import { ChallengeItem } from '@/components/ChallengeItem';
 import { BottomNav } from '@/components/BottomNav';
+import { sortChallenges, SORT_OPTIONS, getDefaultSort } from '@/lib/sortChallenges';
+import type { SortOption } from '@/lib/sortChallenges';
 import mascotUrl from '@/assets/mascot.svg';
 import { Plus } from 'lucide-react';
 
 export default function Challenges() {
-  const { journey, addChallenge, reorderChallenges, saveNow } = useJourney();
-  const [hasSeenReorderHint, setHasSeenReorderHint] = useState(false);
+  const { journey, addChallenge, saveNow } = useJourney();
   const [newTitle, setNewTitle] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [expandedChallengeId, setExpandedChallengeId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>(getDefaultSort());
   const navigate = useNavigate();
   const location = useLocation();
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -33,17 +34,7 @@ export default function Challenges() {
     setSaveStatus('Saved just now');
   };
 
-  const onDragEnd = (result: DropResult) => {
-    if (result.destination == null) return;
-    const from = result.source.index;
-    const to = result.destination.index;
-    if (from === to) return;
-    setHasSeenReorderHint(true);
-    const reordered = [...journey.challenges];
-    const [removed] = reordered.splice(from, 1);
-    reordered.splice(to, 0, removed);
-    reorderChallenges(reordered);
-  };
+  const displayedChallenges = sortChallenges(journey.challenges, sortBy);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -100,48 +91,40 @@ export default function Challenges() {
         </div>
       </div>
 
+      {/* Sort by */}
+      <div className="px-4 mb-3 flex items-center gap-2">
+        <span className="text-xs text-muted-foreground font-medium">Sort by</span>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as SortOption)}
+          className="text-sm rounded-lg border border-border bg-background px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          {SORT_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Challenge list */}
       <div className="px-4 space-y-3">
-        {!hasSeenReorderHint && journey.challenges.length > 1 && (
-          <p className="text-xs text-muted-foreground mb-1">
-            Press & hold the handle to reorder.
-          </p>
-        )}
-        <DragDropContext onDragEnd={onDragEnd}>
-          <Droppable droppableId="challenges">
-            {(droppableProvided) => (
-              <div
-                ref={droppableProvided.innerRef}
-                {...droppableProvided.droppableProps}
-                className="space-y-3"
-              >
-                {journey.challenges.map((c, index) => (
-                  <Draggable key={c.id} draggableId={c.id} index={index}>
-                    {(provided) => (
-                      <div
-                        ref={el => {
-                          provided.innerRef(el);
-                          itemRefs.current[c.id] = el;
-                        }}
-                        {...provided.draggableProps}
-                      >
-                        <ChallengeItem
-                          challenge={c}
-                          isExpanded={expandedChallengeId === c.id}
-                          onToggleExpand={() =>
-                            setExpandedChallengeId(prev => (prev === c.id ? null : c.id))
-                          }
-                          dragHandleProps={provided.dragHandleProps}
-                        />
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-                {droppableProvided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
+        {displayedChallenges.map((c) => (
+          <div
+            key={c.id}
+            ref={(el) => {
+              if (el) itemRefs.current[c.id] = el;
+            }}
+          >
+            <ChallengeItem
+              challenge={c}
+              isExpanded={expandedChallengeId === c.id}
+              onToggleExpand={() =>
+                setExpandedChallengeId(prev => (prev === c.id ? null : c.id))
+              }
+            />
+          </div>
+        ))}
       </div>
 
       {/* Add challenge */}

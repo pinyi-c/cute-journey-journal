@@ -3,6 +3,8 @@ import { Navigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import { useJourney } from '@/lib/journeyContext';
 import type { Challenge } from '@/lib/journeyContext';
+import { sortChallenges, SORT_OPTIONS, getDefaultSort } from '@/lib/sortChallenges';
+import type { SortOption } from '@/lib/sortChallenges';
 import { BottomNav } from '@/components/BottomNav';
 import { getPhotoUrl, getPhoto, blobToDataUrl } from '@/lib/photoDb';
 import { PhotoPreviewModal } from '@/components/PhotoPreviewModal';
@@ -20,6 +22,7 @@ function sanitizeFilename(s: string): string {
 
 export default function Gallery() {
   const { journey } = useJourney();
+  const [sortBy, setSortBy] = useState<SortOption>(getDefaultSort());
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [capturingCard, setCapturingCard] = useState<{
@@ -113,10 +116,25 @@ export default function Gallery() {
             <div className="text-[11px] text-muted-foreground font-medium">Photos</div>
           </div>
         </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground font-medium">Sort by</span>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="text-sm rounded-lg border border-border bg-background px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="px-4 space-y-4">
-        {journey.challenges.map(c => (
+        {sortChallenges(journey.challenges, sortBy).map(c => (
           <div key={c.id} className="bg-card rounded-2xl border border-border p-4">
             <div className="mb-2">
               <h3 className="font-bold text-sm">{c.title}</h3>
