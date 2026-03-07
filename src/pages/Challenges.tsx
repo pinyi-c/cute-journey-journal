@@ -83,7 +83,7 @@ export default function Challenges() {
   return (
     <div className="min-h-screen pb-24 max-w-md mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 sticky top-0 bg-background/80 backdrop-blur-md z-10 gap-3">
+      <div className="flex items-center justify-between p-4 sticky top-0 z-[25] bg-background/95 backdrop-blur-md gap-3">
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-extrabold leading-tight">{t('tabs.logbook')}</h1>
           <p className="text-sm font-medium text-foreground truncate mt-0.5">{journey.title}</p>
@@ -129,7 +129,7 @@ export default function Challenges() {
       </div>
 
       {/* Challenge list */}
-      <div className="px-4 space-y-3">
+      <div className="px-4 space-y-3 relative z-0">
         {isManualSort ? (
           <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="challenges">

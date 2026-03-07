@@ -68,7 +68,7 @@ export function PhotoUpload({ photoIds, onPhotoIdsChange, challengeId }: Props) 
 
   return (
     <div>
-      <div className="flex gap-2 overflow-x-auto pb-1 flex-nowrap">
+      <div className="flex gap-2 overflow-x-auto pb-1 flex-nowrap" data-photo-strip>
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId={`photos-${challengeId}`} direction="horizontal">
             {(droppableProvided) => (

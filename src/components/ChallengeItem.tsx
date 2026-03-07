@@ -16,8 +16,8 @@ import { useLang } from '@/lib/i18n';
 import { INPUT_FIELD_CLASSES, TEXTAREA_FIELD_CLASSES } from '@/lib/constants';
 
 const REVEAL_WIDTH = 72;
-const SWIPE_THRESHOLD = 10;
-const VERTICAL_THRESHOLD = 24;
+const MIN_SWIPE_PX = 40;
+const HORIZONTAL_DOMINANCE = 1.5; // require abs(dx) > HORIZONTAL_DOMINANCE * abs(dy)
 
 interface Props {
   challenge: Challenge;
@@ -58,14 +58,23 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
     deleteChallenge(challenge.id);
   }, [challenge.id, challenge.photoIds, deleteChallenge]);
 
+  const isSwipeExcludedTarget = useCallback((el: EventTarget | null) => {
+    const target = el as HTMLElement;
+    if (!target?.closest) return true;
+    if (target.closest('[data-drag-handle]')) return true;
+    if (target.closest('input, textarea, [contenteditable="true"]')) return true;
+    if (target.closest('[data-photo-strip]')) return true;
+    return false;
+  }, []);
+
   const onTouchStart = useCallback(
     (e: React.TouchEvent) => {
-      if ((e.target as HTMLElement).closest('[data-drag-handle]')) return;
+      if (isSwipeExcludedTarget(e.target)) return;
       const t = e.touches[0];
       touchStartRef.current = { x: t.clientX, y: t.clientY };
       isSwipingRef.current = false;
     },
-    [],
+    [isSwipeExcludedTarget],
   );
   const onTouchMove = useCallback(
     (e: React.TouchEvent) => {
@@ -73,11 +82,16 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
       const t = e.touches[0];
       const dx = t.clientX - touchStartRef.current.x;
       const dy = t.clientY - touchStartRef.current.y;
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
       if (!isSwipingRef.current) {
-        if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dy) < VERTICAL_THRESHOLD) {
-          isSwipingRef.current = true;
-        } else if (Math.abs(dy) > VERTICAL_THRESHOLD) {
+        if (absDy > absDx) {
           touchStartRef.current = null;
+          return;
+        }
+        if (absDx > MIN_SWIPE_PX && absDx > HORIZONTAL_DOMINANCE * absDy) {
+          isSwipingRef.current = true;
+        } else {
           return;
         }
       }
