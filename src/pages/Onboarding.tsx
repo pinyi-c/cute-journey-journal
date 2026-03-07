@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { OwnerAvatar } from '@/components/OwnerAvatar';
 
 export default function Onboarding() {
   const { journey, createJourney, updateJourneyDetails, resetJourney } = useJourney();
@@ -108,7 +109,6 @@ export default function Onboarding() {
   };
 
   const displayName = ownerName.trim() || 'Erina';
-  const displayLetter = (ownerName.trim() || 'Erina').slice(0, 1).toUpperCase();
 
   const handleSaveAddName = () => {
     const name = addNameInput.trim();
@@ -134,9 +134,7 @@ export default function Onboarding() {
                 : 'hover:bg-muted/60'
             }`}
           >
-            <div className="w-12 h-12 rounded-full bg-muted border border-border flex items-center justify-center text-lg font-semibold text-foreground">
-              {displayLetter}
-            </div>
+            <OwnerAvatar name={displayName} className="w-12 h-12 text-lg" alt={displayName} />
             <span className="text-xs font-medium text-foreground">{displayName}</span>
           </button>
           <button

@@ -6,7 +6,7 @@ import { ChallengeItem } from '@/components/ChallengeItem';
 import { BottomNav } from '@/components/BottomNav';
 import { sortChallenges, SORT_OPTIONS, getDefaultSort } from '@/lib/sortChallenges';
 import type { SortOption } from '@/lib/sortChallenges';
-import mascotUrl from '@/assets/mascot.svg';
+import { OwnerAvatar } from '@/components/OwnerAvatar';
 import { Plus } from 'lucide-react';
 
 export default function Challenges() {
@@ -87,7 +87,7 @@ export default function Challenges() {
           <p className="text-xs text-slate-600 mt-0.5">Add/edit entries with photos</p>
         </div>
         <div className="flex flex-col items-center gap-2 flex-shrink-0 ml-3">
-          <img src={mascotUrl} alt="Mascot" className="w-10 h-10" />
+          <OwnerAvatar name={journey.ownerName ?? ''} className="w-10 h-10 text-base" alt="Owner" />
           <button
             onClick={() => navigate('/', { state: { edit: true } })}
             className="text-xs font-semibold text-primary underline underline-offset-2"
