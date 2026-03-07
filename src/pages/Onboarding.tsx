@@ -24,9 +24,25 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { OwnerAvatar } from '@/components/OwnerAvatar';
+import { useLang } from '@/lib/i18n';
+const LangToggle = () => {
+  const { lang, setLang, t } = useLang();
+  const toggle = () => setLang(lang === 'en' ? 'zh-TW' : 'en');
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className="text-xs font-medium px-3 py-1.5 rounded-full border border-border bg-background hover:bg-muted/60 transition-colors"
+      aria-label={lang === 'en' ? 'Switch to 中文' : 'Switch to EN'}
+    >
+      {lang === 'en' ? '中文' : 'EN'}
+    </button>
+  );
+};
 
 export default function Onboarding() {
   const { journey, createJourney, updateJourneyDetails, resetJourney } = useJourney();
+  const { t } = useLang();
   const navigate = useNavigate();
   const location = useLocation();
   const isEditing = Boolean(location.state && (location.state as { edit?: boolean }).edit && journey);
@@ -51,34 +67,37 @@ export default function Onboarding() {
   // If journey exists and user hasn't clicked "new", show continue screen
   if (journey && !showNewForm && !isEditing) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 max-w-md mx-auto">
-        <h1 className="text-2xl font-extrabold mb-2 text-center">Welcome back to Taiwan Logbook!</h1>
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 max-w-md mx-auto relative">
+        <div className="absolute top-4 right-4">
+          <LangToggle />
+        </div>
+        <h1 className="text-2xl font-extrabold mb-2 text-center">{t('welcomeBack.headline')}</h1>
         <p className="text-slate-600 mb-6 text-center">
-          Your logbook: <strong className="text-foreground">{journey.title}</strong>
+          {t('welcomeBack.yourLogbook')} <strong className="text-foreground">{journey.title}</strong>
         </p>
         <button
           onClick={() => navigate('/challenges')}
           className="w-full bg-primary text-primary-foreground rounded-2xl py-3.5 font-bold text-lg shadow-lg active:scale-[0.98] transition-transform"
         >
-          Continue logbook
+          {t('welcomeBack.continue')}
         </button>
         <button
           onClick={() => setShowNewJourneyConfirm(true)}
           className="mt-4 text-sm text-slate-600 underline"
         >
-          Start a new logbook
+          {t('welcomeBack.startNew')}
         </button>
 
         <AlertDialog open={showNewJourneyConfirm} onOpenChange={setShowNewJourneyConfirm}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Start a new logbook?</AlertDialogTitle>
+              <AlertDialogTitle>{t('welcomeBack.startNewConfirm')}</AlertDialogTitle>
               <AlertDialogDescription>
-                This will delete your current logbook and all saved photos. This cannot be undone.
+                {t('welcomeBack.startNewDescription')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={async (e) => {
@@ -89,7 +108,7 @@ export default function Onboarding() {
                   setShowNewForm(true);
                 }}
               >
-                Start new
+                {t('welcomeBack.startNewButton')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -119,11 +138,14 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col p-6 max-w-md mx-auto">
+    <div className="min-h-screen flex flex-col p-6 max-w-md mx-auto relative">
+      <div className="absolute top-4 right-4">
+        <LangToggle />
+      </div>
       <div className="flex flex-col items-center mb-6 pt-8">
         <h1 className="text-2xl font-extrabold text-center">Welcome to Taiwan!</h1>
         <p className="text-slate-600 text-sm mt-1">Tiny moments, big memories. 😋</p>
-        <p className="text-xs text-slate-500 mt-4 mb-2">Who is this logbook for?</p>
+        <p className="text-xs text-slate-500 mt-4 mb-2">{t('onboarding.whoIsThisFor')}</p>
         <div className="flex items-center gap-4">
           <button
             type="button"
@@ -148,7 +170,7 @@ export default function Onboarding() {
             <div className="w-12 h-12 rounded-full bg-muted/50 border border-dashed border-border flex items-center justify-center">
               <Plus size={20} className="text-slate-500" />
             </div>
-            <span className="text-xs font-medium text-slate-600">Add</span>
+            <span className="text-xs font-medium text-slate-600">{t('onboarding.add')}</span>
           </button>
         </div>
       </div>
@@ -156,7 +178,7 @@ export default function Onboarding() {
       <Dialog open={showAddNameModal} onOpenChange={setShowAddNameModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add a name</DialogTitle>
+            <DialogTitle>{t('onboarding.addName')}</DialogTitle>
           </DialogHeader>
           <input
             type="text"
@@ -168,10 +190,10 @@ export default function Onboarding() {
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddNameModal(false)}>
-              Cancel
+              {t('onboarding.cancel')}
             </Button>
             <Button onClick={handleSaveAddName} disabled={!addNameInput.trim()}>
-              Save
+              {t('onboarding.save')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -230,7 +252,7 @@ export default function Onboarding() {
         disabled={!startDate}
         className="mt-8 w-full bg-primary text-primary-foreground rounded-2xl py-4 font-bold text-lg disabled:opacity-50 shadow-lg active:scale-[0.98] transition-transform"
       >
-        Open the logbook
+        {t('onboarding.openLogbook')}
       </button>
     </div>
   );

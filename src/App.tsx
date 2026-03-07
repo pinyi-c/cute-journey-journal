@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { JourneyProvider } from "@/lib/journeyContext";
+import { LangProvider } from "@/lib/i18n";
 import Onboarding from "./pages/Onboarding";
 import Challenges from "./pages/Challenges";
 import Gallery from "./pages/Gallery";
@@ -36,7 +37,8 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <JourneyProvider>
+          <LangProvider>
+            <JourneyProvider>
             <Routes>
               <Route path="/" element={<Onboarding />} />
               <Route path="/challenges" element={<Challenges />} />
@@ -45,7 +47,8 @@ const App = () => {
               <Route path="/summary" element={<Summary />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </JourneyProvider>
+            </JourneyProvider>
+          </LangProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

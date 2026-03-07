@@ -3,9 +3,10 @@ import { Navigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import { useJourney } from '@/lib/journeyContext';
 import type { Challenge } from '@/lib/journeyContext';
-import { sortChallenges, SORT_OPTIONS, getDefaultSort } from '@/lib/sortChallenges';
+import { sortChallenges, getDefaultSort } from '@/lib/sortChallenges';
 import type { SortOption } from '@/lib/sortChallenges';
 import { BottomNav } from '@/components/BottomNav';
+import { useLang } from '@/lib/i18n';
 import { getPhotoUrl, getPhoto, blobToDataUrl } from '@/lib/photoDb';
 import { PhotoPreviewModal } from '@/components/PhotoPreviewModal';
 import { ChallengeCardCapture, CARD_CAPTURE_BG } from '@/components/ChallengeCardCapture';
@@ -22,6 +23,7 @@ function sanitizeFilename(s: string): string {
 
 export default function Gallery() {
   const { journey } = useJourney();
+  const { t } = useLang();
   const [sortBy, setSortBy] = useState<SortOption>(getDefaultSort());
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -99,8 +101,8 @@ export default function Gallery() {
   return (
     <div className="min-h-screen pb-24 max-w-md mx-auto">
       <div className="p-4">
-        <h1 className="text-xl font-extrabold mb-1">Snapshots</h1>
-        <p className="text-xs text-slate-600 mb-4">Your trip at a glance + shareable cards</p>
+        <h1 className="text-xl font-extrabold mb-1">{t('tabs.snapshots')}</h1>
+        <p className="text-xs text-slate-600 mb-4">{t('subtitle.snapshots')}</p>
 
         <div className="grid grid-cols-3 gap-2 mb-4">
           <div className="rounded-xl border border-border bg-primary/5 py-2.5 px-3 text-center">
@@ -118,17 +120,15 @@ export default function Gallery() {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-600 font-medium">Sort by</span>
+          <span className="text-xs text-slate-600 font-medium">{t('common.sortBy')}</span>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
             className="text-sm rounded-lg border border-border bg-background px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
+            <option value="manual">{t('common.sameAsLogbookCustomOrder')}</option>
+            <option value="date-desc">{t('common.dateNewToOld')}</option>
+            <option value="date-asc">{t('common.dateOldToNew')}</option>
           </select>
         </div>
       </div>

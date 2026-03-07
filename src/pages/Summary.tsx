@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useJourney } from '@/lib/journeyContext';
+import { useLang } from '@/lib/i18n';
 import { BottomNav } from '@/components/BottomNav';
 import { exportPdf } from '@/lib/exportPdf';
 import { sortChallenges } from '@/lib/sortChallenges';
@@ -16,6 +17,7 @@ type CoverTitleOption = 'journey' | 'custom';
 export default function Summary() {
   const navigate = useNavigate();
   const { journey, updateJourneyDetails, lastJournalSortMode } = useJourney();
+  const { t } = useLang();
   const [exportingPdf, setExportingPdf] = useState(false);
   const [pdfProgressMessage, setPdfProgressMessage] = useState('');
   const [collageUrls, setCollageUrls] = useState<string[]>([]);
@@ -97,8 +99,8 @@ export default function Summary() {
   return (
     <div className="min-h-screen pb-24 max-w-md mx-auto">
       <div className="p-4">
-        <h1 className="text-xl font-extrabold">Export PDF</h1>
-        <p className="text-xs text-slate-600 mt-0.5">Export PDF booklet</p>
+        <h1 className="text-xl font-extrabold">{t('tabs.exportPdf')}</h1>
+        <p className="text-xs text-slate-600 mt-0.5">{t('subtitle.exportPdf')}</p>
       </div>
 
       {collageUrls.length > 0 && (
@@ -165,18 +167,18 @@ export default function Summary() {
       </div>
 
       <div className="mx-4 space-y-3">
-        <h2 className="font-bold">Export settings</h2>
+        <h2 className="font-bold">{t('export.exportSettings')}</h2>
         <div className="rounded-xl border border-border bg-card p-4 space-y-4">
           <div>
-            <label className="text-xs font-medium text-slate-600 block mb-1">Entry order</label>
+            <label className="text-xs font-medium text-slate-600 block mb-1">{t('export.entryOrder')}</label>
             <select
               value={entryOrder}
               onChange={(e) => setEntryOrder(e.target.value as EntryOrderOption)}
               className="w-full text-sm rounded-lg border border-border bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value="same-as-journal">Same as Logbook (Custom Order)</option>
-              <option value="date-asc">Date: Old → New</option>
-              <option value="date-desc">Date: New → Old</option>
+              <option value="same-as-journal">{t('export.sameAsLogbookCustomOrder')}</option>
+              <option value="date-asc">{t('common.dateOldToNew')}</option>
+              <option value="date-desc">{t('common.dateNewToOld')}</option>
             </select>
           </div>
           <div>
@@ -201,7 +203,7 @@ export default function Summary() {
                   onChange={() => setCoverTitleOption('journey')}
                   className="rounded-full border-border"
                 />
-                <span className="text-sm">Use logbook title</span>
+                <span className="text-sm">{t('export.useLogbookTitle')}</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -211,7 +213,7 @@ export default function Summary() {
                   onChange={() => setCoverTitleOption('custom')}
                   className="rounded-full border-border"
                 />
-                <span className="text-sm">Custom title</span>
+                <span className="text-sm">{t('export.customTitle')}</span>
               </label>
               {coverTitleOption === 'custom' && (
                 <input
@@ -227,18 +229,18 @@ export default function Summary() {
           </div>
         </div>
 
-        <h2 className="font-bold pt-2">Export PDF</h2>
+        <h2 className="font-bold pt-2">{t('export.exportPdf')}</h2>
         <button
           onClick={handlePdfExport}
           disabled={exportingPdf || total === 0}
           className="w-full bg-primary text-primary-foreground rounded-2xl py-3.5 font-semibold flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm active:scale-[0.98] transition-transform"
         >
           {exportingPdf ? <Loader2 size={18} className="animate-spin" /> : <FileDown size={18} />}
-          Export PDF
+          {t('export.exportPdf')}
         </button>
         {total === 0 && (
           <p className="text-xs text-slate-600 text-center">
-            Add at least one entry to export your PDF.
+            {t('export.addOneEntryHint')}
           </p>
         )}
       </div>

@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ChevronDown, ChevronUp, Trash2, Pencil, GripVertical } from 'lucide-react';
 import { deletePhoto } from '@/lib/photoDb';
+import { useLang } from '@/lib/i18n';
 import { INPUT_FIELD_CLASSES, TEXTAREA_FIELD_CLASSES } from '@/lib/constants';
 
 const REVEAL_WIDTH = 72;
@@ -30,6 +31,7 @@ interface Props {
 
 export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandleProps, dragHandleDisabled }: Props) {
   const { updateChallenge, deleteChallenge } = useJourney();
+  const { t } = useLang();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(challenge.title);
   const [swipeOffset, setSwipeOffset] = useState(0);
@@ -255,15 +257,15 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
+            <AlertDialogTitle>{t('common.deleteEntryConfirm')}</AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => handleDelete()}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

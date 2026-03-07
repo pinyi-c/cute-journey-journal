@@ -4,9 +4,10 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { useJourney } from '@/lib/journeyContext';
 import { ChallengeItem } from '@/components/ChallengeItem';
 import { BottomNav } from '@/components/BottomNav';
-import { sortChallenges, SORT_OPTIONS, getDefaultSort } from '@/lib/sortChallenges';
+import { sortChallenges, getDefaultSort } from '@/lib/sortChallenges';
 import type { SortOption } from '@/lib/sortChallenges';
 import { OwnerAvatar } from '@/components/OwnerAvatar';
+import { useLang } from '@/lib/i18n';
 import { Plus } from 'lucide-react';
 
 export default function Challenges() {
@@ -19,6 +20,7 @@ export default function Challenges() {
   const navigate = useNavigate();
   const location = useLocation();
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const { t } = useLang();
 
   if (!journey) return <Navigate to="/" replace />;
 
@@ -83,9 +85,9 @@ export default function Challenges() {
       {/* Header */}
       <div className="flex items-center justify-between p-4 sticky top-0 bg-background/80 backdrop-blur-md z-10 gap-3">
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-extrabold leading-tight">Logbook</h1>
+          <h1 className="text-xl font-extrabold leading-tight">{t('tabs.logbook')}</h1>
           <p className="text-sm font-medium text-foreground truncate mt-0.5">{journey.title}</p>
-          <p className="text-xs text-slate-600 mt-0.5">Add/edit entries with photos</p>
+          <p className="text-xs text-slate-600 mt-0.5">{t('subtitle.logbook')}</p>
         </div>
         <div className="flex flex-col items-center gap-2 flex-shrink-0">
           <OwnerAvatar name={journey.ownerName ?? ''} className="w-10 h-10 text-base" alt="Owner" />
@@ -93,7 +95,7 @@ export default function Challenges() {
             onClick={() => navigate('/', { state: { edit: true } })}
             className="text-xs font-semibold text-primary underline underline-offset-2"
           >
-            Edit logbook
+            {t('common.editLogbook')}
           </button>
         </div>
       </div>
@@ -114,17 +116,15 @@ export default function Challenges() {
 
       {/* Sort by */}
       <div className="px-4 mb-3 flex items-center gap-2">
-        <span className="text-xs text-slate-600 font-medium">Sort by</span>
+        <span className="text-xs text-slate-600 font-medium">{t('common.sortBy')}</span>
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as SortOption)}
           className="text-sm rounded-lg border border-border bg-background px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring"
         >
-          {SORT_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.value === 'manual' ? 'Custom Order' : opt.label}
-            </option>
-          ))}
+          <option value="manual">{t('common.customOrder')}</option>
+          <option value="date-desc">{t('common.dateNewToOld')}</option>
+          <option value="date-asc">{t('common.dateOldToNew')}</option>
         </select>
       </div>
 
@@ -196,7 +196,7 @@ export default function Challenges() {
             <input
               value={newTitle}
               onChange={e => setNewTitle(e.target.value)}
-              placeholder="New entry title..."
+              placeholder={t('common.newEntryPlaceholder')}
               className="flex-1 p-3 rounded-2xl bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               autoFocus
               onKeyDown={e => e.key === 'Enter' && handleAdd()}
@@ -205,7 +205,7 @@ export default function Challenges() {
               onClick={handleAdd}
               className="bg-primary text-primary-foreground px-4 rounded-2xl font-semibold text-sm"
             >
-              Add
+              {t('onboarding.add')}
             </button>
             <button
               onClick={() => { setShowAdd(false); setNewTitle(''); }}
@@ -219,7 +219,7 @@ export default function Challenges() {
             onClick={() => setShowAdd(true)}
             className="w-full py-3 rounded-2xl border-2 border-dashed border-primary/40 text-slate-700 font-semibold flex items-center justify-center gap-2 hover:border-primary/60 hover:text-slate-800 transition-colors active:scale-[0.98]"
           >
-            <Plus size={18} /> Add entry
+            <Plus size={18} /> {t('common.addEntry')}
           </button>
         )}
       </div>
