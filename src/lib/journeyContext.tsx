@@ -46,16 +46,9 @@ export function useJourney() {
 }
 
 const DEFAULT_CHALLENGES = [
-  'Night Market Snacks 🍢',
-  'Bubble Tea 🧋',
-  'Iconic Street Scene 🛵',
-  'Temple or Cultural Spot 🏮',
-  'Cute Café ☕',
-  'Public Transport Ride 🚇',
-  'A Funny Discovery 😄',
-  'A Photo Together 🤳',
-  'Local Breakfast 🍳',
-  'City Walk! 🌆',
+  'First day vibe ✨',
+  'Something I ate 🍜',
+  'Dihua Street',
 ];
 
 function makeChallenge(title: string): Challenge {
