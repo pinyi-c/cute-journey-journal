@@ -80,6 +80,7 @@ export default function Challenges() {
           <p className="text-xs text-muted-foreground">
             {completed}/{total} completed
           </p>
+          <p className="text-xs text-muted-foreground mt-0.5">Add/edit entries with photos</p>
         </div>
         <div className="flex flex-col items-center gap-2 flex-shrink-0 ml-3">
           <img src={mascotUrl} alt="Mascot" className="w-10 h-10" />

@@ -99,7 +99,8 @@ export default function Gallery() {
   return (
     <div className="min-h-screen pb-24 max-w-md mx-auto">
       <div className="p-4">
-        <h1 className="text-xl font-extrabold mb-4">Gallery 📸</h1>
+        <h1 className="text-xl font-extrabold mb-1">Memories</h1>
+        <p className="text-xs text-muted-foreground mb-4">Your trip at a glance + shareable cards</p>
         <div className="flex gap-2 mb-4">
           {(['all', 'completed', 'pending'] as Filter[]).map(f => (
             <button

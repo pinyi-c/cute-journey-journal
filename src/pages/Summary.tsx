@@ -84,7 +84,10 @@ export default function Summary() {
   return (
     <div className="min-h-screen pb-24 max-w-md mx-auto">
       <div className="p-4 flex items-center justify-between">
-        <h1 className="text-xl font-extrabold">Summary ✨</h1>
+        <div>
+          <h1 className="text-xl font-extrabold">Booklet</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Export PDF booklet</p>
+        </div>
         <img src={mascotUrl} alt="Mascot" className="w-10 h-10" />
       </div>
 
