@@ -81,12 +81,13 @@ export default function Challenges() {
   return (
     <div className="min-h-screen pb-24 max-w-md mx-auto">
       {/* Header */}
-      <div className="flex items-start justify-between p-4 sticky top-0 bg-background/80 backdrop-blur-md z-10">
+      <div className="flex items-center justify-between p-4 sticky top-0 bg-background/80 backdrop-blur-md z-10 gap-3">
         <div className="min-w-0 flex-1">
-          <h1 className="text-lg font-extrabold truncate">{journey.title}</h1>
+          <h1 className="text-xl font-extrabold leading-tight">Logbook</h1>
+          <p className="text-sm font-medium text-foreground truncate mt-0.5">{journey.title}</p>
           <p className="text-xs text-slate-600 mt-0.5">Add/edit entries with photos</p>
         </div>
-        <div className="flex flex-col items-center gap-2 flex-shrink-0 ml-3">
+        <div className="flex flex-col items-center gap-2 flex-shrink-0">
           <OwnerAvatar name={journey.ownerName ?? ''} className="w-10 h-10 text-base" alt="Owner" />
           <button
             onClick={() => navigate('/', { state: { edit: true } })}
