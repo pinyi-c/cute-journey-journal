@@ -155,7 +155,7 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
                     ? 'text-slate-500 hover:text-slate-800 cursor-grab active:cursor-grabbing'
                     : 'text-slate-400 cursor-default pointer-events-none select-none'
               }`}
-              aria-label={dragHandleDisabled || !dragHandleProps ? 'Reorder in Logbook (custom order)' : 'Drag to reorder'}
+              aria-label={dragHandleDisabled || !dragHandleProps ? 'Reorder in Logbook (Custom Order)' : 'Drag to reorder'}
             >
               <GripVertical size={18} />
             </div>

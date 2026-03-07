@@ -121,7 +121,7 @@ export default function Challenges() {
         >
           {SORT_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
-              {opt.label}
+              {opt.value === 'manual' ? 'Custom Order' : opt.label}
             </option>
           ))}
         </select>

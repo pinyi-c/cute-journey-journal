@@ -174,7 +174,7 @@ export default function Summary() {
               onChange={(e) => setEntryOrder(e.target.value as EntryOrderOption)}
               className="w-full text-sm rounded-lg border border-border bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value="same-as-journal">Same as Logbook (current view)</option>
+              <option value="same-as-journal">Same as Logbook (Custom Order)</option>
               <option value="date-asc">Date: Old → New</option>
               <option value="date-desc">Date: New → Old</option>
             </select>
