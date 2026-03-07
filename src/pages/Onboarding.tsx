@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useJourney, ThemeId } from '@/lib/journeyContext';
 import { ThemePicker } from '@/components/ThemePicker';
-import mascotUrl from '@/assets/mascot.svg';
 import { INPUT_FIELD_CLASSES } from '@/lib/constants';
 import { clearAllPhotos } from '@/lib/photoDb';
+import { Plus } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,6 +15,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 export default function Onboarding() {
   const { journey, createJourney, updateJourneyDetails, resetJourney } = useJourney();
@@ -30,6 +38,9 @@ export default function Onboarding() {
   const [endDate, setEndDate] = useState(journey ? journey.endDate : '');
   const [buddyName, setBuddyName] = useState(journey ? journey.buddyName : '');
   const [theme, setTheme] = useState<ThemeId>(journey ? journey.theme : 'oat-latte');
+  const [ownerName, setOwnerName] = useState(journey?.ownerName ?? 'Erina');
+  const [showAddNameModal, setShowAddNameModal] = useState(false);
+  const [addNameInput, setAddNameInput] = useState('');
 
   // Live preview: apply selected theme to DOM so background, inputs, picker, and button update instantly
   useEffect(() => {
@@ -40,7 +51,6 @@ export default function Onboarding() {
   if (journey && !showNewForm && !isEditing) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 max-w-md mx-auto">
-        <img src={mascotUrl} alt="Logbook mascot" className="w-24 h-24 mb-4" />
         <h1 className="text-2xl font-extrabold mb-2 text-center">Welcome back! 🎉</h1>
         <p className="text-slate-600 mb-6 text-center">
           Your logbook: <strong className="text-foreground">{journey.title}</strong>
@@ -90,20 +100,84 @@ export default function Onboarding() {
   const handleStart = () => {
     if (!startDate) return;
     if (journey && isEditing) {
-      updateJourneyDetails({ title, startDate, endDate, buddyName, theme });
+      updateJourneyDetails({ title, startDate, endDate, buddyName, theme, ownerName });
     } else {
-      createJourney({ title, startDate, endDate, buddyName, theme });
+      createJourney({ title, startDate, endDate, buddyName, theme, ownerName });
     }
     navigate('/challenges');
   };
 
+  const displayName = ownerName.trim() || 'Erina';
+  const displayLetter = (ownerName.trim() || 'Erina').slice(0, 1).toUpperCase();
+
+  const handleSaveAddName = () => {
+    const name = addNameInput.trim();
+    if (!name) return;
+    setOwnerName(name);
+    setAddNameInput('');
+    setShowAddNameModal(false);
+  };
+
   return (
     <div className="min-h-screen flex flex-col p-6 max-w-md mx-auto">
-      <div className="flex flex-col items-center mb-8 pt-8">
-        <img src={mascotUrl} alt="Logbook mascot" className="w-28 h-28 mb-3 drop-shadow-lg" />
+      <div className="flex flex-col items-center mb-6 pt-8">
         <h1 className="text-2xl font-extrabold text-center">Welcome to Taiwan!</h1>
         <p className="text-slate-600 text-sm mt-1">Tiny moments, big memories. 😋</p>
+        <p className="text-xs text-slate-500 mt-4 mb-2">Who is this logbook for?</p>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => setOwnerName(displayName)}
+            className={`flex flex-col items-center gap-1.5 transition-all rounded-2xl p-2 min-w-[72px] ${
+              (ownerName.trim() || 'Erina') === displayName
+                ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                : 'hover:bg-muted/60'
+            }`}
+          >
+            <div className="w-12 h-12 rounded-full bg-muted border border-border flex items-center justify-center text-lg font-semibold text-foreground">
+              {displayLetter}
+            </div>
+            <span className="text-xs font-medium text-foreground">{displayName}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAddNameInput('');
+              setShowAddNameModal(true);
+            }}
+            className="flex flex-col items-center gap-1.5 rounded-2xl p-2 min-w-[72px] hover:bg-muted/60 transition-colors border border-dashed border-border"
+          >
+            <div className="w-12 h-12 rounded-full bg-muted/50 border border-dashed border-border flex items-center justify-center">
+              <Plus size={20} className="text-slate-500" />
+            </div>
+            <span className="text-xs font-medium text-slate-600">Add</span>
+          </button>
+        </div>
       </div>
+
+      <Dialog open={showAddNameModal} onOpenChange={setShowAddNameModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add a name</DialogTitle>
+          </DialogHeader>
+          <input
+            type="text"
+            value={addNameInput}
+            onChange={e => setAddNameInput(e.target.value)}
+            placeholder="Name"
+            className={INPUT_FIELD_CLASSES}
+            onKeyDown={e => e.key === 'Enter' && handleSaveAddName()}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddNameModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveAddName} disabled={!addNameInput.trim()}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="space-y-4">
         <div>

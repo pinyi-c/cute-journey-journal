@@ -27,6 +27,8 @@ export interface Journey {
   challenges: Challenge[];
   /** Optional cover photo ID for PDF booklet (from completed challenges' photos). */
   coverPhotoId?: string | null;
+  /** Owner / profile name (who this logbook is for). */
+  ownerName?: string;
 }
 
 /** Journal sort mode; used for "Same as Journal" in PDF export. */
