@@ -124,12 +124,12 @@ export default function CropPage() {
       <header className="px-4 pt-4 pb-2 flex items-center justify-between max-w-md mx-auto w-full">
         <button
           type="button"
-          className="text-sm text-muted-foreground"
+          className="text-sm text-slate-600"
           onClick={handleCancel}
         >
           Back
         </button>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-slate-600">
           {isCoverMode ? 'Crop cover photo' : 'Crop your photo'}
         </p>
         <span className="w-10" />
@@ -168,7 +168,7 @@ export default function CropPage() {
           <div className="flex items-center justify-between gap-3">
             <button
               type="button"
-              className="px-4 py-2 rounded-full border text-sm text-muted-foreground"
+              className="px-4 py-2 rounded-full border text-sm text-slate-600"
               onClick={handleCancel}
             >
               Cancel

@@ -147,7 +147,7 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
               <div
                 {...dragHandleProps}
                 data-drag-handle
-                className="flex items-center justify-center flex-shrink-0 touch-manipulation text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing p-1 -m-1 rounded"
+                className="flex items-center justify-center flex-shrink-0 touch-manipulation text-slate-500 hover:text-slate-800 cursor-grab active:cursor-grabbing p-1 -m-1 rounded"
                 aria-label="Drag to reorder"
               >
                 <GripVertical size={18} />
@@ -175,7 +175,7 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
                 e.stopPropagation();
                 setEditing(true);
               }}
-              className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors touch-manipulation"
+              className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-md text-slate-600 hover:text-slate-900 hover:bg-muted/50 transition-colors touch-manipulation"
               aria-label="Edit title"
             >
               <Pencil size={16} />
@@ -184,15 +184,15 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
         )}
 
         {challenge.photoIds.length > 0 && (
-          <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
+          <span className="text-xs bg-secondary text-slate-700 px-2 py-0.5 rounded-full">
             📷 {challenge.photoIds.length}
           </span>
         )}
 
         {isExpanded ? (
-          <ChevronUp size={16} className="text-muted-foreground flex-shrink-0" />
+          <ChevronUp size={16} className="text-slate-500 flex-shrink-0" />
         ) : (
-          <ChevronDown size={16} className="text-muted-foreground flex-shrink-0" />
+          <ChevronDown size={16} className="text-slate-500 flex-shrink-0" />
         )}
       </div>
 
@@ -200,7 +200,7 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
       {isExpanded && (
         <div className="px-3 pb-3 space-y-3 border-t border-border pt-3">
           <div>
-            <label className="text-xs text-muted-foreground font-medium">Notes / Caption</label>
+            <label className="text-xs text-slate-600 font-medium">Notes / Caption</label>
             <textarea
               value={challenge.caption}
               onChange={e => updateChallenge(challenge.id, { caption: e.target.value })}
@@ -212,7 +212,7 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex-1">
-              <label className="text-xs text-muted-foreground font-medium">Date</label>
+              <label className="text-xs text-slate-600 font-medium">Date</label>
               <input
                 type="date"
                 value={challenge.date}
@@ -221,7 +221,7 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
               />
             </div>
             <div className="flex-1">
-              <label className="text-xs text-muted-foreground font-medium">Location</label>
+              <label className="text-xs text-slate-600 font-medium">Location</label>
               <input
                 value={challenge.location}
                 onChange={e => updateChallenge(challenge.id, { location: e.target.value })}
@@ -232,7 +232,7 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
           </div>
 
           <div>
-            <label className="text-xs text-muted-foreground font-medium mb-1 block">
+            <label className="text-xs text-slate-600 font-medium mb-1 block">
               Photos (max 10)
             </label>
             <PhotoUpload

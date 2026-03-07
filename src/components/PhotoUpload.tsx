@@ -122,7 +122,7 @@ export function PhotoUpload({ photoIds, onPhotoIdsChange, challengeId }: Props) 
         </DragDropContext>
         {photoIds.length < MAX_PHOTOS_PER_CHALLENGE && (
           <label className="w-20 h-20 rounded-xl border-2 border-dashed border-primary/40 flex items-center justify-center cursor-pointer hover:border-primary/70 transition-colors flex-shrink-0">
-            <Plus size={24} className="text-primary/50" />
+            <Plus size={24} className="text-slate-500" />
             <input
               ref={inputRef}
               type="file"
@@ -134,7 +134,7 @@ export function PhotoUpload({ photoIds, onPhotoIdsChange, challengeId }: Props) 
         )}
       </div>
       {photoIds.length >= MAX_PHOTOS_PER_CHALLENGE && (
-        <p className="text-xs text-muted-foreground mt-1">This challenge can have up to 10 photos. 📸</p>
+        <p className="text-xs text-slate-600 mt-1">This challenge can have up to 10 photos. 📸</p>
       )}
       <PhotoPreviewModal url={previewUrl} onClose={() => setPreviewUrl(null)} />
     </div>

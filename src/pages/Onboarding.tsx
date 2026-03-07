@@ -42,7 +42,7 @@ export default function Onboarding() {
       <div className="min-h-screen flex flex-col items-center justify-center p-6 max-w-md mx-auto">
         <img src={mascotUrl} alt="Journey mascot" className="w-24 h-24 mb-4" />
         <h1 className="text-2xl font-extrabold mb-2 text-center">Welcome back! 🎉</h1>
-        <p className="text-muted-foreground mb-6 text-center">
+        <p className="text-slate-600 mb-6 text-center">
           Your journey: <strong className="text-foreground">{journey.title}</strong>
         </p>
         <button
@@ -53,7 +53,7 @@ export default function Onboarding() {
         </button>
         <button
           onClick={() => setShowNewJourneyConfirm(true)}
-          className="mt-4 text-sm text-muted-foreground underline"
+          className="mt-4 text-sm text-slate-600 underline"
         >
           Start a new journey
         </button>
@@ -102,7 +102,7 @@ export default function Onboarding() {
       <div className="flex flex-col items-center mb-8 pt-8">
         <img src={mascotUrl} alt="Journey mascot" className="w-28 h-28 mb-3 drop-shadow-lg" />
         <h1 className="text-2xl font-extrabold text-center">Welcome to Taiwan!</h1>
-        <p className="text-muted-foreground text-sm mt-1">Tiny moments, big memories. 😋</p>
+        <p className="text-slate-600 text-sm mt-1">Tiny moments, big memories. 😋</p>
       </div>
 
       <div className="space-y-4">

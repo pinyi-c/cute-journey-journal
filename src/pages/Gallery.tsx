@@ -100,25 +100,25 @@ export default function Gallery() {
     <div className="min-h-screen pb-24 max-w-md mx-auto">
       <div className="p-4">
         <h1 className="text-xl font-extrabold mb-1">Memories</h1>
-        <p className="text-xs text-muted-foreground mb-4">Your trip at a glance + shareable cards</p>
+        <p className="text-xs text-slate-600 mb-4">Your trip at a glance + shareable cards</p>
 
         <div className="grid grid-cols-3 gap-2 mb-4">
           <div className="rounded-xl border border-border bg-primary/5 py-2.5 px-3 text-center">
             <div className="text-lg font-bold text-primary">{entriesCount}</div>
-            <div className="text-[11px] text-muted-foreground font-medium">Entries</div>
+            <div className="text-[11px] text-slate-600 font-medium">Entries</div>
           </div>
           <div className="rounded-xl border border-border bg-primary/5 py-2.5 px-3 text-center">
             <div className="text-lg font-bold text-primary">{uniqueDates}</div>
-            <div className="text-[11px] text-muted-foreground font-medium">Days</div>
+            <div className="text-[11px] text-slate-600 font-medium">Days</div>
           </div>
           <div className="rounded-xl border border-border bg-primary/5 py-2.5 px-3 text-center">
             <div className="text-lg font-bold text-primary">{photosCount}</div>
-            <div className="text-[11px] text-muted-foreground font-medium">Photos</div>
+            <div className="text-[11px] text-slate-600 font-medium">Photos</div>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground font-medium">Sort by</span>
+          <span className="text-xs text-slate-600 font-medium">Sort by</span>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
@@ -140,10 +140,10 @@ export default function Gallery() {
               <h3 className="font-bold text-sm">{c.title}</h3>
             </div>
             {c.caption && (
-              <p className="text-sm text-muted-foreground mb-2">{c.caption}</p>
+              <p className="text-sm text-slate-600 mb-2">{c.caption}</p>
             )}
             {(c.date || c.location) && (
-              <p className="text-xs text-muted-foreground mb-2">
+              <p className="text-xs text-slate-600 mb-2">
                 {c.date && `📅 ${c.date} `}
                 {c.location && `📍 ${c.location}`}
               </p>
@@ -165,20 +165,20 @@ export default function Gallery() {
                   )}
                 </div>
                 {c.photoIds.length > 6 && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-slate-600">
                     +{c.photoIds.length - 6} more
                   </p>
                 )}
               </div>
             )}
             {c.photoIds.length === 0 && (
-              <p className="text-xs text-muted-foreground/60 italic">No photos yet</p>
+              <p className="text-xs text-slate-500 italic">No photos yet</p>
             )}
             <div className="mt-3 pt-3 border-t border-border">
               <button
                 type="button"
                 onClick={() => handleDownloadCard(c)}
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors"
               >
                 <Download size={16} />
                 Download Card
@@ -187,7 +187,7 @@ export default function Gallery() {
           </div>
         ))}
         {journey.challenges.length === 0 && (
-          <p className="text-center text-muted-foreground py-8">
+          <p className="text-center text-slate-600 py-8">
             No entries yet. Add entries in Journal to see them here.
           </p>
         )}

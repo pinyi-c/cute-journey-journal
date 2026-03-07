@@ -84,7 +84,7 @@ export default function Summary() {
       <div className="p-4 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-extrabold">Booklet</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Export PDF booklet</p>
+          <p className="text-xs text-slate-600 mt-0.5">Export PDF booklet</p>
         </div>
         <img src={mascotUrl} alt="Mascot" className="w-10 h-10" />
       </div>
@@ -104,7 +104,7 @@ export default function Summary() {
 
       <div className="mx-4 mb-6">
         <h2 className="font-bold mb-3">PDF Cover Photo</h2>
-        <p className="text-xs text-muted-foreground mb-2">
+        <p className="text-xs text-slate-600 mb-2">
           Optional: upload a dedicated cover photo for the booklet. It will be cropped to portrait (4:5).
         </p>
         <div className="flex flex-wrap items-start gap-3">
@@ -124,7 +124,7 @@ export default function Summary() {
                     deletePhoto(journey.coverPhotoId!);
                     updateJourneyDetails({ coverPhotoId: null });
                   }}
-                  className="text-sm text-muted-foreground hover:text-destructive flex items-center gap-1"
+                  className="text-sm text-slate-600 hover:text-destructive flex items-center gap-1"
                 >
                   <X size={14} /> Remove
                 </button>
@@ -132,8 +132,8 @@ export default function Summary() {
             </>
           ) : (
             <label className="flex flex-col items-center justify-center w-24 rounded-xl border-2 border-dashed border-primary/40 flex-shrink-0 cursor-pointer hover:border-primary/70 transition-colors aspect-[4/5]">
-              <Plus size={28} className="text-primary/50" />
-              <span className="text-xs font-medium text-muted-foreground mt-1">Upload</span>
+              <Plus size={28} className="text-slate-500" />
+              <span className="text-xs font-medium text-slate-600 mt-1">Upload</span>
               <input
                 ref={coverInputRef}
                 type="file"
@@ -163,7 +163,7 @@ export default function Summary() {
           Export PDF Booklet
         </button>
         {total === 0 && (
-          <p className="text-xs text-muted-foreground text-center">
+          <p className="text-xs text-slate-600 text-center">
             Add at least one entry to export your booklet.
           </p>
         )}
@@ -180,8 +180,8 @@ export default function Summary() {
         >
           <div className="mx-4 flex max-w-sm flex-col items-center gap-4 rounded-2xl border border-border bg-card p-8 shadow-lg">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="text-sm font-medium text-foreground">Exporting PDF</p>
-            <p className="min-h-[1.25rem] text-center text-xs text-muted-foreground">
+            <p className="text-sm font-medium text-slate-900">Exporting PDF</p>
+            <p className="min-h-[1.25rem] text-center text-xs text-slate-600">
               {pdfProgressMessage || 'Preparing…'}
             </p>
           </div>

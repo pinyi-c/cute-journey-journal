@@ -80,7 +80,7 @@ export default function Challenges() {
       <div className="flex items-start justify-between p-4 sticky top-0 bg-background/80 backdrop-blur-md z-10">
         <div className="min-w-0 flex-1">
           <h1 className="text-lg font-extrabold truncate">{journey.title}</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Add/edit entries with photos</p>
+          <p className="text-xs text-slate-600 mt-0.5">Add/edit entries with photos</p>
         </div>
         <div className="flex flex-col items-center gap-2 flex-shrink-0 ml-3">
           <img src={mascotUrl} alt="Mascot" className="w-10 h-10" />
@@ -94,7 +94,7 @@ export default function Challenges() {
       </div>
 
       {/* Manual save */}
-      <div className="px-4 mb-3 flex items-center justify-between text-[11px] text-muted-foreground">
+      <div className="px-4 mb-3 flex items-center justify-between text-[11px] text-slate-600">
         <span>Auto-save is on.</span>
         <div className="flex items-center gap-2">
           {saveStatus && <span>{saveStatus}</span>}
@@ -109,7 +109,7 @@ export default function Challenges() {
 
       {/* Sort by */}
       <div className="px-4 mb-3 flex items-center gap-2">
-        <span className="text-xs text-muted-foreground font-medium">Sort by</span>
+        <span className="text-xs text-slate-600 font-medium">Sort by</span>
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as SortOption)}
@@ -203,7 +203,7 @@ export default function Challenges() {
             </button>
             <button
               onClick={() => { setShowAdd(false); setNewTitle(''); }}
-              className="text-muted-foreground px-2 text-lg"
+              className="text-slate-600 px-2 text-lg"
             >
               ✕
             </button>
@@ -211,7 +211,7 @@ export default function Challenges() {
         ) : (
           <button
             onClick={() => setShowAdd(true)}
-            className="w-full py-3 rounded-2xl border-2 border-dashed border-primary/30 text-primary/70 font-semibold flex items-center justify-center gap-2 hover:border-primary/50 transition-colors active:scale-[0.98]"
+            className="w-full py-3 rounded-2xl border-2 border-dashed border-primary/40 text-slate-700 font-semibold flex items-center justify-center gap-2 hover:border-primary/60 hover:text-slate-800 transition-colors active:scale-[0.98]"
           >
             <Plus size={18} /> Add Challenge
           </button>
