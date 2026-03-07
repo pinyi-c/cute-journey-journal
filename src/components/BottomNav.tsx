@@ -1,10 +1,10 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ListChecks, Images, Trophy } from 'lucide-react';
+import { NotebookPen, Images, BookOpen } from 'lucide-react';
 
 const tabs = [
-  { path: '/challenges', icon: ListChecks, label: 'Journal' },
+  { path: '/challenges', icon: NotebookPen, label: 'Journal' },
   { path: '/gallery', icon: Images, label: 'Memories' },
-  { path: '/summary', icon: Trophy, label: 'Booklet' },
+  { path: '/summary', icon: BookOpen, label: 'Booklet' },
 ];
 
 export function BottomNav() {
