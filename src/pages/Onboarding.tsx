@@ -158,7 +158,7 @@ export default function Onboarding() {
         disabled={!startDate}
         className="mt-8 w-full bg-primary text-primary-foreground rounded-2xl py-4 font-bold text-lg disabled:opacity-50 shadow-lg active:scale-[0.98] transition-transform"
       >
-        Start My Journey! 🚀
+        Open the logbook
       </button>
     </div>
   );
