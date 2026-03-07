@@ -117,7 +117,7 @@ export default function Summary() {
       <div className="mx-4 mb-6">
         <h2 className="font-bold mb-3">PDF Cover Photo</h2>
         <p className="text-xs text-slate-600 mb-2">
-          Optional: upload a dedicated cover photo for the booklet. It will be cropped to portrait (4:5).
+          Optional: upload a dedicated cover photo for the PDF. It will be cropped to portrait (4:5).
         </p>
         <div className="flex flex-wrap items-start gap-3">
           {journey.coverPhotoId && coverPreviewUrl ? (
