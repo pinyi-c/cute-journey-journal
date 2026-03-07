@@ -24,9 +24,11 @@ interface Props {
   onToggleExpand: () => void;
   /** When provided, attach to the drag handle so only the handle starts drag. */
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
+  /** When true, show grip but dimmed and non-draggable (e.g. when Sort is Date-based). */
+  dragHandleDisabled?: boolean;
 }
 
-export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandleProps }: Props) {
+export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandleProps, dragHandleDisabled }: Props) {
   const { updateChallenge, deleteChallenge } = useJourney();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(challenge.title);
@@ -143,16 +145,20 @@ export function ChallengeItem({ challenge, isExpanded, onToggleExpand, dragHandl
             className="flex items-center gap-3 p-3 cursor-pointer"
             onClick={() => !editing && onToggleExpand()}
           >
-            {dragHandleProps && (
-              <div
-                {...dragHandleProps}
-                data-drag-handle
-                className="flex items-center justify-center flex-shrink-0 touch-manipulation text-slate-500 hover:text-slate-800 cursor-grab active:cursor-grabbing p-1 -m-1 rounded"
-                aria-label="Drag to reorder"
-              >
-                <GripVertical size={18} />
-              </div>
-            )}
+            <div
+              {...(dragHandleProps && !dragHandleDisabled ? dragHandleProps : {})}
+              data-drag-handle
+              className={`flex items-center justify-center flex-shrink-0 touch-manipulation rounded p-2 -m-2 ${
+                dragHandleDisabled
+                  ? 'text-slate-400 cursor-default pointer-events-none select-none'
+                  : dragHandleProps
+                    ? 'text-slate-500 hover:text-slate-800 cursor-grab active:cursor-grabbing'
+                    : 'text-slate-400 cursor-default pointer-events-none select-none'
+              }`}
+              aria-label={dragHandleDisabled || !dragHandleProps ? 'Reorder in Manual sort' : 'Drag to reorder'}
+            >
+              <GripVertical size={18} />
+            </div>
 
         {editing ? (
           <input

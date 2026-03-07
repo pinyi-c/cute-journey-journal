@@ -15,7 +15,7 @@ export default function Challenges() {
   const [showAdd, setShowAdd] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [expandedChallengeId, setExpandedChallengeId] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<SortOption>(getDefaultSort());
+  const [sortBy, setSortBy] = useState<SortOption>('manual');
   const navigate = useNavigate();
   const location = useLocation();
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -176,6 +176,7 @@ export default function Challenges() {
                   onToggleExpand={() =>
                     setExpandedChallengeId(prev => (prev === c.id ? null : c.id))
                   }
+                  dragHandleDisabled
                 />
               </div>
             ))}
