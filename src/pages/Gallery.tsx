@@ -87,11 +87,32 @@ export default function Gallery() {
 
   if (!journey) return <Navigate to="/" replace />;
 
+  const entriesCount = journey.challenges.length;
+  const uniqueDates = new Set(
+    journey.challenges.map(c => c.date).filter((d): d is string => Boolean(d)),
+  ).size;
+  const photosCount = journey.challenges.reduce((sum, c) => sum + c.photoIds.length, 0);
+
   return (
     <div className="min-h-screen pb-24 max-w-md mx-auto">
       <div className="p-4">
         <h1 className="text-xl font-extrabold mb-1">Memories</h1>
         <p className="text-xs text-muted-foreground mb-4">Your trip at a glance + shareable cards</p>
+
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="rounded-xl border border-border bg-primary/5 py-2.5 px-3 text-center">
+            <div className="text-lg font-bold text-primary">{entriesCount}</div>
+            <div className="text-[11px] text-muted-foreground font-medium">Entries</div>
+          </div>
+          <div className="rounded-xl border border-border bg-primary/5 py-2.5 px-3 text-center">
+            <div className="text-lg font-bold text-primary">{uniqueDates}</div>
+            <div className="text-[11px] text-muted-foreground font-medium">Days</div>
+          </div>
+          <div className="rounded-xl border border-border bg-primary/5 py-2.5 px-3 text-center">
+            <div className="text-lg font-bold text-primary">{photosCount}</div>
+            <div className="text-[11px] text-muted-foreground font-medium">Photos</div>
+          </div>
+        </div>
       </div>
 
       <div className="px-4 space-y-4">
