@@ -1,5 +1,5 @@
 /** Maximum number of photos allowed per challenge. */
-export const MAX_PHOTOS_PER_CHALLENGE = 10;
+export const MAX_PHOTOS_PER_CHALLENGE = 9;
 
 /** Stable IndexedDB key for the dedicated PDF cover photo (one per app/journey). */
 export const COVER_PHOTO_ID = 'coverPhoto';

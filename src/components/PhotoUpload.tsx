@@ -40,7 +40,7 @@ export function PhotoUpload({ photoIds, onPhotoIdsChange, challengeId }: Props) 
     if (photoIds.length >= MAX_PHOTOS_PER_CHALLENGE) {
       toast({
         title: 'Photo limit reached',
-        description: 'This entry can have up to 10 photos.',
+        description: `This entry can have up to ${MAX_PHOTOS_PER_CHALLENGE} photos.`,
       });
       return;
     }
@@ -134,7 +134,7 @@ export function PhotoUpload({ photoIds, onPhotoIdsChange, challengeId }: Props) 
         )}
       </div>
       {photoIds.length >= MAX_PHOTOS_PER_CHALLENGE && (
-        <p className="text-xs text-slate-600 mt-1">This entry can have up to 10 photos. 📸</p>
+        <p className="text-xs text-slate-600 mt-1">This entry can have up to {MAX_PHOTOS_PER_CHALLENGE} photos. 📸</p>
       )}
       <PhotoPreviewModal url={previewUrl} onClose={() => setPreviewUrl(null)} />
     </div>

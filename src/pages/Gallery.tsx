@@ -10,6 +10,7 @@ import { useLang } from '@/lib/i18n';
 import { getPhotoUrl, getPhoto, blobToDataUrl } from '@/lib/photoDb';
 import { PhotoPreviewModal } from '@/components/PhotoPreviewModal';
 import { ChallengeCardCapture, CARD_CAPTURE_BG } from '@/components/ChallengeCardCapture';
+import { MAX_PHOTOS_PER_CHALLENGE } from '@/lib/constants';
 import { Download } from 'lucide-react';
 
 function sanitizeFilename(s: string): string {
@@ -81,7 +82,7 @@ export default function Gallery() {
   }, [capturingCard, journey]);
 
   const handleDownloadCard = async (c: Challenge) => {
-    const ids = c.photoIds.slice(0, 10);
+    const ids = c.photoIds.slice(0, MAX_PHOTOS_PER_CHALLENGE);
     const dataUrls: string[] = [];
     for (const id of ids) {
       const blob = await getPhoto(id);

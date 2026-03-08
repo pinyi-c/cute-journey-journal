@@ -3,13 +3,14 @@
  * Used only in Gallery for "Download Card" PNG export.
  */
 import { forwardRef } from 'react';
+import { MAX_PHOTOS_PER_CHALLENGE } from '@/lib/constants';
 
 export interface ChallengeCardCaptureProps {
   title: string;
   date: string;
   location: string;
   caption: string;
-  /** Data URLs for up to 10 photos (avoids CORS in html2canvas). */
+  /** Data URLs for up to 9 photos (avoids CORS in html2canvas). */
   imageDataUrls: string[];
   /** Optional footer text. */
   footer?: string;
@@ -17,9 +18,8 @@ export interface ChallengeCardCaptureProps {
 
 const CARD_BG = '#FAF7F2';
 const CARD_WIDTH = 1080;
-const MAX_PHOTOS = 10;
 
-/** Columns for photo grid by count: 1=hero, 2=2col, 3-4=2x2, 5-6=3col, 7-9=3col, 10=5col. */
+/** Columns for photo grid by count: 1=hero, 2=2col, 3-4=2x2, 5-6=3col, 7-9=3col. */
 function getGridColumns(n: number): number {
   if (n <= 1) return 1;
   if (n === 2) return 2;
@@ -34,7 +34,7 @@ export const ChallengeCardCapture = forwardRef<HTMLDivElement, ChallengeCardCapt
     { title, date, location, caption, imageDataUrls, footer = 'Taiwan Logbook' },
     ref
   ) {
-  const photos = imageDataUrls.slice(0, MAX_PHOTOS);
+  const photos = imageDataUrls.slice(0, MAX_PHOTOS_PER_CHALLENGE);
   const cols = getGridColumns(photos.length);
   const isHero = photos.length === 1;
 
