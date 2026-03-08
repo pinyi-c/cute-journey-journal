@@ -128,6 +128,10 @@ function groupByDate(challenges: JourneyChallenge[], journey: Journey): DateGrou
   return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
 }
 
+const PHOTO_COLS = 3;
+const PHOTO_ROWS = 4;
+const PHOTO_SLOTS = PHOTO_COLS * PHOTO_ROWS; // 12
+
 function estimateBlockHeight(
   doc: any,
   challenge: JourneyChallenge,
@@ -139,29 +143,24 @@ function estimateBlockHeight(
   // Title line
   h += 10;
 
-  // Caption lines
   if (challenge.caption) {
-    const maxWidth = pageWidth; // caller passes content width (e.g. half-page contentWidth)
+    const maxWidth = pageWidth;
     const cap = sanitizeForPDF(challenge.caption);
     const lines = doc.splitTextToSize(cap, maxWidth) as string[];
-    h += 2; // spacing before caption
+    h += 2;
     h += lines.length * 6;
   }
 
-  // Photos: up to 10 per challenge, 2-column grid (match booklet PHOTO_SIZE/GAP)
-  const photoCount = Math.min(challenge.photoIds.length, 10);
-  if (photoCount > 0) {
-    const PHOTO_SIZE = 36;
-    const GAP = 4;
-    const rows = Math.ceil(photoCount / 2);
+  // Photos: 3×4 grid (12 slots); reserve full grid height when any photos
+  const PHOTO_SIZE = 36;
+  const GAP = 4;
+  if (challenge.photoIds.length > 0) {
     h += 4; // divider
-    h += rows * PHOTO_SIZE + (rows - 1) * GAP;
+    h += PHOTO_ROWS * PHOTO_SIZE + (PHOTO_ROWS - 1) * GAP;
     h += 8;
   }
 
-  // Spacing after block
   h += 6;
-
   return h;
 }
 
@@ -303,7 +302,7 @@ async function renderLogicalPage(
     y += 8;
     doc.setFontSize(10);
     doc.setTextColor(120);
-    doc.text('Three days in Taipei, forever in the camera roll.', halfCenterX, y, { align: 'center' });
+    doc.text('A small log of big moments in Taiwan.', halfCenterX, y, { align: 'center' });
     return;
   }
 
@@ -313,7 +312,7 @@ async function renderLogicalPage(
 
   if (page.type === 'content') {
     const totalPhotos = page.blocks.reduce(
-      (sum, b) => sum + Math.min(b.challenge.photoIds.length, 10),
+      (sum, b) => sum + Math.min(b.challenge.photoIds.length, PHOTO_SLOTS),
       0,
     );
     let photosLoaded = 0;
@@ -363,7 +362,7 @@ async function renderLogicalPage(
         doc.text(lines, contentLeft, y);
         y += lines.length * 6;
       }
-      const photoIds = block.challenge.photoIds.slice(0, 10);
+      const photoIds = block.challenge.photoIds.slice(0, PHOTO_SLOTS);
       if (photoIds.length > 0) {
         doc.setDrawColor(210);
         doc.setLineWidth(0.2);
@@ -371,8 +370,8 @@ async function renderLogicalPage(
         y += 4;
         const blockStartY = y;
         for (let i = 0; i < photoIds.length; i++) {
-          const col = i % 2;
-          const row = Math.floor(i / 2);
+          const col = i % PHOTO_COLS;
+          const row = Math.floor(i / PHOTO_COLS);
           const px = contentLeft + col * (PHOTO_SIZE + PHOTO_GAP);
           const py = blockStartY + row * (PHOTO_SIZE + PHOTO_GAP);
           const pid = photoIds[i];
@@ -390,8 +389,7 @@ async function renderLogicalPage(
           }
           photosLoaded += 1;
         }
-        const rowsInBlock = Math.ceil(photoIds.length / 2);
-        y = blockStartY + rowsInBlock * (PHOTO_SIZE + PHOTO_GAP) - PHOTO_GAP + PHOTO_SIZE + 8;
+        y = blockStartY + PHOTO_ROWS * (PHOTO_SIZE + PHOTO_GAP) - PHOTO_GAP + PHOTO_SIZE + 8;
       }
       y += 6;
     }
@@ -414,7 +412,7 @@ async function renderLogicalPage(
   if (page.type === 'back') {
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text('The end of this logbook.', contentLeft, originY + pageH / 2);
+    doc.text('Filed under: Taiwan days.', contentLeft, originY + pageH / 2);
     return;
   }
 }
