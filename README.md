@@ -5,19 +5,19 @@ photos, memories, locations, and customizable logbook entries.
 
 🔗 Live Demo: taiwan-logbook.lovable.app
 
-## Why I Built This
+## How to Use
 
-I originally built Taiwan Logbook for a Japanese friend visiting Taiwan.
-Instead of keeping travel memories scattered across photos,
-notes, and messages, I wanted to create a simple product where
-the entire journey could be documented in one place.
+1. Create your trip and profile.
+2. Add entries for places, food, and memorable moments.
+3. Add photos, dates, locations, and captions.
+4. Review your trip in the Memories section.
+5. Export your trip as a PDF booklet when you're finished.
 
-Here’s how to use Taiwan Logbook:
+### Printing the PDF Booklet
 
-1. Set up your trip and profile.
-2. Add entries for places, food, or little moments during the trip.
-3. Add photos, dates, locations, and captions to each entry.
-4. Check the Memories page to look back on everything.
-5. When you’re done, you can export the whole trip as a PDF booklet.
+To print the PDF as a small booklet, choose:
 
-Also, just want to let you know about the PDF: if you want to print it as a little booklet, choose **“double-sided” + “flip on short edge”** when printing. Then just fold the pages in half.
+* **Double-sided printing**
+* **Flip on short edge**
+
+Then fold the printed pages in half.
